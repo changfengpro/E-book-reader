@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import EbookReader
 import EbookReader.Backend
 
@@ -11,6 +12,9 @@ Page {
     property string formatOverride: ""
     property string titleOverride: ""
 
+    signal backRequested()
+    signal settingsRequested()
+
     ReaderController {
         id: controller
         bookId: page.bookId
@@ -18,7 +22,9 @@ Page {
 
     header: ReaderToolbar {
         title: page.titleOverride.length > 0 ? page.titleOverride : controller.title
-        onBackRequested: StackView.view.pop()
+        onBackRequested: page.backRequested()
+        onContentsRequested: contentsPopup.open()
+        onSettingsRequested: page.settingsRequested()
     }
 
     Rectangle {
@@ -31,6 +37,48 @@ Page {
                            : activeFormat === "pdf" ? pdfReaderComponent
                            : activeFormat === "epub" ? epubReaderComponent
                            : placeholderComponent
+        }
+    }
+
+    Popup {
+        id: contentsPopup
+        modal: true
+        focus: true
+        width: Math.min(page.width - 48, 360)
+        height: Math.min(page.height - 96, 420)
+        x: page.width - width - 24
+        y: 24
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
+
+            Label {
+                text: "目录"
+                font.pixelSize: 20
+                font.bold: true
+                Layout.fillWidth: true
+            }
+
+            Label {
+                text: activeFormat === "epub"
+                    ? "EPUB 目录解析模块接入后会显示章节。"
+                    : activeFormat === "pdf"
+                        ? "PDF 目录解析模块接入后会显示书签。"
+                        : "TXT 文件暂按连续文本阅读。"
+                color: "#64748b"
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            Button {
+                text: "关闭"
+                Layout.alignment: Qt.AlignRight
+                onClicked: contentsPopup.close()
+            }
         }
     }
 

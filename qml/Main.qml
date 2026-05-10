@@ -32,6 +32,9 @@ ApplicationWindow {
 
     Component {
         id: readerPage
-        ReaderPage {}
+        ReaderPage {
+            onBackRequested: stack.pop()
+            onSettingsRequested: stack.push(settingsPage)
+        }
     }
 }
