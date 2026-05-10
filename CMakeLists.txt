@@ -9,6 +9,10 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Sql Test)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
+if(COMMAND qt_policy)
+    qt_policy(SET QTP0004 NEW)
+endif()
+
 qt_add_executable(TabletEbookReader
     src/main.cpp
     src/storage/AppDatabase.cpp

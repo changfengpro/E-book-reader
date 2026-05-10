@@ -11,13 +11,18 @@ Page {
     signal importRequested()
 
     readonly property bool tabletWide: width >= 900
-    readonly property int columnCount: tabletWide ? 4 : 2
+    readonly property int columnCount: width >= 1200 ? 5 : tabletWide ? 4 : 2
+
+    background: Rectangle {
+        color: "#eef2f6"
+    }
 
     header: ToolBar {
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 16
             anchors.rightMargin: 16
+            spacing: 10
 
             Label {
                 text: "书架"
@@ -62,21 +67,32 @@ Page {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 24
+        anchors.margins: page.tabletWide ? 28 : 18
         spacing: 16
 
-        TextField {
-            placeholderText: "搜索书名、作者、格式"
+        RowLayout {
             Layout.fillWidth: true
+            spacing: 12
+
+            TextField {
+                placeholderText: "搜索书名、作者、格式"
+                Layout.fillWidth: true
+            }
+
+            ComboBox {
+                model: ["全部", "TXT", "PDF", "EPUB"]
+                Layout.preferredWidth: page.tabletWide ? 140 : 112
+            }
         }
 
         GridView {
             id: grid
             visible: libraryModel.count > 0
             model: libraryModel
-            cellWidth: Math.floor(width / page.columnCount)
-            cellHeight: 280
+            cellWidth: Math.max(156, Math.floor(width / page.columnCount))
+            cellHeight: 286
             clip: true
+            boundsBehavior: Flickable.StopAtBounds
             Layout.fillWidth: true
             Layout.fillHeight: true
 
@@ -86,7 +102,7 @@ Page {
 
                 BookCard {
                     anchors.centerIn: parent
-                    width: Math.min(parent.width - 16, 190)
+                    width: Math.min(parent.width - 16, 196)
                     bookId: model.bookId
                     title: model.title
                     format: model.format

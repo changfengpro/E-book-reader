@@ -14,6 +14,7 @@ Control {
 
     implicitWidth: 180
     implicitHeight: 260
+    hoverEnabled: true
 
     background: Rectangle {
         color: root.hovered ? "#f8fafc" : "#ffffff"
@@ -55,6 +56,7 @@ Control {
                 maximumLineCount: 2
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
+                Layout.preferredHeight: 42
             }
 
             ProgressBar {
