@@ -16,6 +16,8 @@ qt_add_executable(TabletEbookReader
     src/storage/AppPaths.cpp
     src/storage/AppPaths.h
     src/book/Book.h
+    src/book/BookImporter.cpp
+    src/book/BookImporter.h
     src/book/BookRepository.cpp
     src/book/BookRepository.h
 )
@@ -25,6 +27,9 @@ qt_add_qml_module(TabletEbookReader
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/components/BookCard.qml
+        qml/components/EmptyLibraryView.qml
+        qml/components/ImportButton.qml
         qml/pages/LibraryPage.qml
         qml/pages/ReaderPage.qml
         qml/pages/SettingsPage.qml

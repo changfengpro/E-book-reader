@@ -1,12 +1,17 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import EbookReader
 
 Page {
     id: page
 
     signal openBook(string bookId)
     signal openSettings()
+    signal importRequested()
+
+    readonly property bool tabletWide: width >= 900
+    readonly property int columnCount: tabletWide ? 4 : 2
 
     header: ToolBar {
         RowLayout {
@@ -21,10 +26,37 @@ Page {
                 Layout.fillWidth: true
             }
 
+            ImportButton {
+                onClicked: page.importRequested()
+            }
+
             Button {
                 text: "设置"
                 onClicked: page.openSettings()
             }
+        }
+    }
+
+    ListModel {
+        id: libraryModel
+
+        ListElement {
+            bookId: "sample-txt"
+            title: "长篇小说"
+            format: "txt"
+            progress: 0.37
+        }
+        ListElement {
+            bookId: "sample-pdf"
+            title: "技术手册"
+            format: "pdf"
+            progress: 0.18
+        }
+        ListElement {
+            bookId: "sample-epub"
+            title: "文学选集"
+            format: "epub"
+            progress: 0.64
         }
     }
 
@@ -33,22 +65,42 @@ Page {
         anchors.margins: 24
         spacing: 16
 
-        Label {
-            text: "本地书库"
-            font.pixelSize: 28
-            font.bold: true
-        }
-
-        Label {
-            text: "导入本地书籍后，可在这里继续最近阅读。"
-            color: "#64748b"
-            wrapMode: Text.WordWrap
+        TextField {
+            placeholderText: "搜索书名、作者、格式"
             Layout.fillWidth: true
         }
 
-        Button {
-            text: "打开阅读页"
-            onClicked: page.openBook("sample")
+        GridView {
+            id: grid
+            visible: libraryModel.count > 0
+            model: libraryModel
+            cellWidth: Math.floor(width / page.columnCount)
+            cellHeight: 280
+            clip: true
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            delegate: Item {
+                width: grid.cellWidth
+                height: grid.cellHeight
+
+                BookCard {
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - 16, 190)
+                    bookId: model.bookId
+                    title: model.title
+                    format: model.format
+                    progress: model.progress
+                    onOpenBook: function(id) { page.openBook(id) }
+                }
+            }
+        }
+
+        EmptyLibraryView {
+            visible: libraryModel.count === 0
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            onImportRequested: page.importRequested()
         }
     }
 }
