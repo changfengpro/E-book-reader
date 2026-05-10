@@ -11,6 +11,8 @@ Page {
     property string filePath: ""
     property string formatOverride: ""
     property string titleOverride: ""
+    property int currentChapterIndex: 0
+    property var textChapters: []
 
     signal backRequested()
     signal settingsRequested()
@@ -19,6 +21,10 @@ Page {
         id: controller
         bookId: page.bookId
     }
+
+    Component.onCompleted: refreshTextChapters()
+    onFilePathChanged: refreshTextChapters()
+    onActiveFormatChanged: refreshTextChapters()
 
     header: ReaderToolbar {
         title: page.titleOverride.length > 0 ? page.titleOverride : controller.title
@@ -67,11 +73,31 @@ Page {
                     ? "EPUB 目录解析模块接入后会显示章节。"
                     : activeFormat === "pdf"
                         ? "PDF 目录解析模块接入后会显示书签。"
-                        : "TXT 文件暂按连续文本阅读。"
+                        : page.textChapters.length === 0
+                            ? "未识别到章节。"
+                            : ""
                 color: "#64748b"
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
+                visible: text.length > 0
+            }
+
+            ListView {
+                visible: activeFormat === "txt" && page.textChapters.length > 0
+                model: page.textChapters
+                clip: true
+                Layout.fillWidth: true
                 Layout.fillHeight: true
+
+                delegate: ItemDelegate {
+                    width: ListView.view.width
+                    text: modelData.title
+                    highlighted: modelData.index === page.currentChapterIndex
+                    onClicked: {
+                        page.currentChapterIndex = modelData.index
+                        contentsPopup.close()
+                    }
+                }
             }
 
             Button {
@@ -89,11 +115,12 @@ Page {
 
         TxtReader {
             content: page.filePath.length > 0
-                ? controller.loadTextFile(page.filePath)
+                ? controller.loadTextChapter(page.filePath, page.currentChapterIndex)
                 : "请选择一本 TXT 书籍"
             onPositionChanged: function(progress) {
                 controller.saveLocator(JSON.stringify({
                     type: "txt",
+                    chapterIndex: page.currentChapterIndex,
                     progress: progress
                 }))
             }
@@ -130,6 +157,19 @@ Page {
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
             }
+        }
+    }
+
+    function refreshTextChapters() {
+        if (activeFormat !== "txt" || filePath.length === 0) {
+            textChapters = []
+            currentChapterIndex = 0
+            return
+        }
+
+        textChapters = controller.loadTextChapters(filePath)
+        if (currentChapterIndex >= textChapters.length) {
+            currentChapterIndex = 0
         }
     }
 }

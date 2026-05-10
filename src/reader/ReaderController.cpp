@@ -1,6 +1,6 @@
 #include "ReaderController.h"
 
-#include "reader/TxtDocument.h"
+#include <QVariantMap>
 
 ReaderController::ReaderController(QObject *parent)
     : QObject(parent)
@@ -50,9 +50,54 @@ QString ReaderController::savedLocator() const
 
 QString ReaderController::loadTextFile(const QString &filePath)
 {
-    TxtDocument document;
-    if (!document.load(filePath)) {
-        return document.lastError();
+    if (!ensureTextDocumentLoaded(filePath)) {
+        return m_textDocument.lastError();
     }
-    return document.text();
+    return m_textDocument.text();
+}
+
+QVariantList ReaderController::loadTextChapters(const QString &filePath)
+{
+    QVariantList chapterList;
+    if (!ensureTextDocumentLoaded(filePath)) {
+        return chapterList;
+    }
+
+    const QList<TxtChapter> chapters = m_textDocument.chapters();
+    for (int i = 0; i < chapters.size(); ++i) {
+        const TxtChapter chapter = chapters.at(i);
+        chapterList.append(QVariantMap {
+            { QStringLiteral("index"), i },
+            { QStringLiteral("title"), chapter.title }
+        });
+    }
+    return chapterList;
+}
+
+QString ReaderController::loadTextChapter(const QString &filePath, int chapterIndex)
+{
+    if (!ensureTextDocumentLoaded(filePath)) {
+        return m_textDocument.lastError();
+    }
+    return m_textDocument.chapterText(chapterIndex);
+}
+
+bool ReaderController::ensureTextDocumentLoaded(const QString &filePath)
+{
+    if (filePath.isEmpty()) {
+        m_loadedTextPath.clear();
+        return false;
+    }
+
+    if (m_loadedTextPath == filePath) {
+        return true;
+    }
+
+    if (!m_textDocument.load(filePath)) {
+        m_loadedTextPath.clear();
+        return false;
+    }
+
+    m_loadedTextPath = filePath;
+    return true;
 }

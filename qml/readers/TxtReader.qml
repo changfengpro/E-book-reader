@@ -8,6 +8,8 @@ Flickable {
 
     signal positionChanged(real progress)
 
+    onContentChanged: contentY = 0
+
     clip: true
     contentWidth: width
     contentHeight: textItem.implicitHeight + 48

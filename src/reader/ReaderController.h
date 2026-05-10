@@ -1,7 +1,10 @@
 #pragma once
 
+#include "reader/TxtDocument.h"
+
 #include <QObject>
 #include <QString>
+#include <QVariantList>
 
 class ReaderController : public QObject {
     Q_OBJECT
@@ -20,11 +23,17 @@ public:
     Q_INVOKABLE void saveLocator(const QString &locatorJson);
     Q_INVOKABLE QString savedLocator() const;
     Q_INVOKABLE QString loadTextFile(const QString &filePath);
+    Q_INVOKABLE QVariantList loadTextChapters(const QString &filePath);
+    Q_INVOKABLE QString loadTextChapter(const QString &filePath, int chapterIndex);
 
 signals:
     void bookChanged();
 
 private:
+    bool ensureTextDocumentLoaded(const QString &filePath);
+
     QString m_bookId;
     QString m_locatorJson;
+    QString m_loadedTextPath;
+    TxtDocument m_textDocument;
 };
