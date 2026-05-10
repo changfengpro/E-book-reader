@@ -1,4 +1,5 @@
 .superpowers/
+.worktrees/
 
 # Qt / CMake build outputs
 build/
