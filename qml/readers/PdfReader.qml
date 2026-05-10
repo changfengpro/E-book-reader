@@ -9,7 +9,7 @@ Item {
     property var statusText: ""
     readonly property int safePageCount: Number(pageCount || 0)
     readonly property string safeStatusText: String(statusText || "")
-    readonly property int currentPage: pageAtY(scroll.contentY + scroll.height * 0.35)
+    readonly property int currentPage: Math.max(1, Number(pageAtY(scroll.contentY + scroll.height * 0.35) || 1))
 
     signal pageRequested(int page, real zoom)
     signal locatorChanged(string locatorJson)
@@ -51,11 +51,12 @@ Item {
             return 1
         }
 
-        let bestPage = pageModel.get(0).pageNumber
+        let bestPage = Number(pageModel.get(0).pageNumber || 1)
         for (let i = 0; i < pageColumn.children.length; ++i) {
             const item = pageColumn.children[i]
-            if (item.y <= y) {
-                bestPage = item.pageNumber
+            const candidatePage = Number(item.pageNumber || 0)
+            if (candidatePage > 0 && item.y <= y) {
+                bestPage = candidatePage
             }
         }
         return bestPage
