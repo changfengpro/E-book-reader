@@ -16,6 +16,17 @@ Page {
     property var textChapters: []
     property var pdfInfo: ({ loaded: false, pageCount: 0, error: "" })
     property var pdfRender: ({ rendered: false, imageUrl: "", error: "" })
+    readonly property var currentPdfInfo: pdfInfo ? pdfInfo : ({ loaded: false, pageCount: 0, error: "" })
+    readonly property var currentPdfRender: pdfRender ? pdfRender : ({ rendered: false, imageUrl: "", error: "" })
+    readonly property int safePdfPageCount: currentPdfInfo.pageCount ? currentPdfInfo.pageCount : 0
+    readonly property string safePdfImageUrl: currentPdfRender.imageUrl ? currentPdfRender.imageUrl : ""
+    readonly property string safePdfStatusText: currentPdfRender.error && currentPdfRender.error.length > 0
+        ? currentPdfRender.error
+        : currentPdfInfo.loaded
+            ? "正在渲染 PDF 页面..."
+            : currentPdfInfo.error && currentPdfInfo.error.length > 0
+                ? currentPdfInfo.error
+                : "请选择一本 PDF 书籍"
 
     signal backRequested()
     signal settingsRequested()
@@ -148,9 +159,9 @@ Page {
         id: pdfReaderComponent
 
         PdfReader {
-            pageCount: page.pdfPageCount()
-            imageUrl: page.pdfImageUrl()
-            statusText: page.pdfStatusText()
+            pageCount: page.safePdfPageCount
+            imageUrl: page.safePdfImageUrl
+            statusText: page.safePdfStatusText
             onPageRequested: function(requestedPage, requestedZoom) {
                 page.renderPdfPage(requestedPage, requestedZoom)
             }
@@ -207,27 +218,6 @@ Page {
 
         pdfRender = controller.renderPdfPage(filePath, pdfPage, zoom)
             || { rendered: false, imageUrl: "", error: "PDF 页面渲染失败" }
-    }
-
-    function pdfPageCount() {
-        return pdfInfo && pdfInfo.pageCount ? pdfInfo.pageCount : 0
-    }
-
-    function pdfImageUrl() {
-        return pdfRender && pdfRender.imageUrl ? pdfRender.imageUrl : ""
-    }
-
-    function pdfStatusText() {
-        if (pdfRender && pdfRender.error && pdfRender.error.length > 0) {
-            return pdfRender.error
-        }
-        if (pdfInfo && pdfInfo.loaded) {
-            return "正在渲染 PDF 页面..."
-        }
-        if (pdfInfo && pdfInfo.error && pdfInfo.error.length > 0) {
-            return pdfInfo.error
-        }
-        return "请选择一本 PDF 书籍"
     }
 
     function refreshDocuments() {
