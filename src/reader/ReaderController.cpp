@@ -1,7 +1,9 @@
 #include "ReaderController.h"
 
 #include "reader/PdfDocument.h"
+#include "reader/PdfPageRenderer.h"
 
+#include <QUrl>
 #include <QVariantMap>
 
 ReaderController::ReaderController(QObject *parent)
@@ -98,6 +100,25 @@ QVariantMap ReaderController::loadPdfInfo(const QString &filePath)
     return {
         { QStringLiteral("loaded"), true },
         { QStringLiteral("pageCount"), document.pageCount() },
+        { QStringLiteral("error"), QString() }
+    };
+}
+
+QVariantMap ReaderController::renderPdfPage(const QString &filePath, int page, double zoom)
+{
+    PdfPageRenderer renderer;
+    const QString imagePath = renderer.renderPage(filePath, page, zoom);
+    if (imagePath.isEmpty()) {
+        return {
+            { QStringLiteral("rendered"), false },
+            { QStringLiteral("imageUrl"), QString() },
+            { QStringLiteral("error"), renderer.lastError() }
+        };
+    }
+
+    return {
+        { QStringLiteral("rendered"), true },
+        { QStringLiteral("imageUrl"), QUrl::fromLocalFile(imagePath).toString() },
         { QStringLiteral("error"), QString() }
     };
 }

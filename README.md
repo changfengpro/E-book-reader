@@ -5,7 +5,7 @@
 ## 支持格式
 
 - TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码，已接入导入和阅读页。
-- PDF：已接入文件读取、页数识别、页码导航和阅读状态保存；当前构建尚未接入真实 PDF 渲染模块。
+- PDF：已接入文件读取、页数识别、页码导航和阅读状态保存；桌面端可通过 MuPDF `mutool` 渲染页面图片。
 - EPUB：已提供目录/章节接口和阅读界面，当前构建尚未接入真实 EPUB 解包模块。
 
 ## 本地构建
@@ -43,11 +43,12 @@ $env:PATH="D:\Qt\Tools\mingw1310_64\bin;D:\Qt\6.10.2\mingw_64\bin;$env:PATH"
 - `tst_bookimporter`：TXT/PDF/EPUB 格式识别，以及从已打开文件流导入。
 - `tst_txtdocument`：TXT 编码读取和章节识别。
 - `tst_pdfdocument`：PDF 文件识别和页数解析。
+- `tst_pdfpagerenderer`：通过 MuPDF `mutool draw` 渲染 PDF 页面图片。
 - `tst_librarycontroller`：书架控制器导入本地文件并刷新书籍列表。
 
 ## 后续实现重点
 
 - 在安卓真机上验证并加固文档 URI 持久权限处理。
-- 接入 Qt PDF 或 MuPDF。
+- 将 MuPDF 渲染后端打包进 Android 构建。
 - 接入 EPUB zip 解包和 OPF/Nav 解析。
 - 将阅读设置保存到 SQLite。

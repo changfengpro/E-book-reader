@@ -8,13 +8,16 @@ Item {
     property int page: 1
     property int pageCount: 0
     property real zoom: 1.0
+    property string imageUrl: ""
     property string statusText: ""
 
+    signal pageRequested(int page, real zoom)
     signal locatorChanged(string locatorJson)
 
     function previousPage() {
         if (root.page > 1) {
             root.page -= 1
+            root.pageRequested(root.page, root.zoom)
             root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
         }
     }
@@ -22,6 +25,7 @@ Item {
     function nextPage() {
         if (root.page < root.pageCount) {
             root.page += 1
+            root.pageRequested(root.page, root.zoom)
             root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
         }
     }
@@ -61,38 +65,37 @@ Item {
             Layout.fillWidth: true
             onMoved: {
                 root.zoom = value
+                root.pageRequested(root.page, root.zoom)
                 root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
             }
         }
 
-        Rectangle {
+        Flickable {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: "#ffffff"
-            border.color: "#d7dee8"
-            radius: 8
+            clip: true
+            contentWidth: Math.max(width, pageImage.implicitWidth)
+            contentHeight: Math.max(height, pageImage.implicitHeight)
+            boundsBehavior: Flickable.StopAtBounds
 
-            ColumnLayout {
+            Image {
+                id: pageImage
+                anchors.centerIn: parent
+                source: root.imageUrl
+                fillMode: Image.PreserveAspectFit
+                cache: false
+                asynchronous: true
+                width: Math.min(implicitWidth, parent.width)
+            }
+
+            Label {
                 anchors.centerIn: parent
                 width: Math.min(parent.width - 48, 520)
-                spacing: 10
-
-                Label {
-                    text: root.statusText
-                    color: "#4b5563"
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
-                Label {
-                    visible: root.pageCount > 0
-                    text: "已识别 PDF 页数，渲染后端接入后这里会显示页面内容。"
-                    color: "#64748b"
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
+                visible: root.imageUrl.length === 0
+                text: root.statusText
+                color: "#4b5563"
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
             }
         }
     }

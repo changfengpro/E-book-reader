@@ -30,6 +30,8 @@ qt_add_executable(TabletEbookReader
     src/reader/ReaderController.h
     src/reader/PdfDocument.cpp
     src/reader/PdfDocument.h
+    src/reader/PdfPageRenderer.cpp
+    src/reader/PdfPageRenderer.h
     src/reader/EpubDocument.cpp
     src/reader/EpubDocument.h
     src/reader/TxtDocument.cpp

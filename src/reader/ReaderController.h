@@ -27,6 +27,7 @@ public:
     Q_INVOKABLE QVariantList loadTextChapters(const QString &filePath);
     Q_INVOKABLE QString loadTextChapter(const QString &filePath, int chapterIndex);
     Q_INVOKABLE QVariantMap loadPdfInfo(const QString &filePath);
+    Q_INVOKABLE QVariantMap renderPdfPage(const QString &filePath, int page, double zoom);
 
 signals:
     void bookChanged();

@@ -85,6 +85,25 @@ target_link_libraries(tst_pdfdocument
 
 add_test(NAME tst_pdfdocument COMMAND $<TARGET_FILE:tst_pdfdocument>)
 
+add_executable(tst_pdfpagerenderer
+    tst_pdfpagerenderer.cpp
+    ../src/reader/PdfPageRenderer.cpp
+    ../src/reader/PdfPageRenderer.h
+)
+
+target_include_directories(tst_pdfpagerenderer
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src
+)
+
+target_link_libraries(tst_pdfpagerenderer
+    PRIVATE
+        Qt6::Core
+        Qt6::Test
+)
+
+add_test(NAME tst_pdfpagerenderer COMMAND $<TARGET_FILE:tst_pdfpagerenderer>)
+
 add_executable(tst_librarycontroller
     tst_librarycontroller.cpp
     ../src/book/LibraryController.cpp

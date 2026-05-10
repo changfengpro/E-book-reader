@@ -15,6 +15,7 @@ Page {
     property int currentChapterIndex: 0
     property var textChapters: []
     property var pdfInfo: ({ loaded: false, pageCount: 0, error: "" })
+    property var pdfRender: ({ rendered: false, imageUrl: "", error: "" })
 
     signal backRequested()
     signal settingsRequested()
@@ -148,11 +149,17 @@ Page {
 
         PdfReader {
             pageCount: page.pdfInfo.pageCount || 0
-            statusText: page.pdfInfo.loaded
-                ? "PDF 已载入，当前页 " + pageCount + " 页。"
-                : page.pdfInfo.error.length > 0
-                    ? page.pdfInfo.error
-                    : "请选择一本 PDF 书籍"
+            imageUrl: page.pdfRender.imageUrl || ""
+            statusText: page.pdfRender.error.length > 0
+                ? page.pdfRender.error
+                : page.pdfInfo.loaded
+                    ? "正在渲染 PDF 页面..."
+                    : page.pdfInfo.error.length > 0
+                        ? page.pdfInfo.error
+                        : "请选择一本 PDF 书籍"
+            onPageRequested: function(requestedPage, requestedZoom) {
+                page.renderPdfPage(requestedPage, requestedZoom)
+            }
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
             }
@@ -190,6 +197,20 @@ Page {
         }
 
         pdfInfo = controller.loadPdfInfo(filePath)
+        if (pdfInfo.loaded) {
+            renderPdfPage(1, 1.0)
+        } else {
+            pdfRender = { rendered: false, imageUrl: "", error: pdfInfo.error }
+        }
+    }
+
+    function renderPdfPage(pdfPage, zoom) {
+        if (activeFormat !== "pdf" || filePath.length === 0) {
+            pdfRender = { rendered: false, imageUrl: "", error: "" }
+            return
+        }
+
+        pdfRender = controller.renderPdfPage(filePath, pdfPage, zoom)
     }
 
     function refreshDocuments() {
