@@ -24,7 +24,9 @@ Page {
 
         Loader {
             anchors.fill: parent
-            sourceComponent: controller.format === "txt" ? txtReaderComponent : placeholderComponent
+            sourceComponent: controller.format === "txt" ? txtReaderComponent
+                           : controller.format === "pdf" ? pdfReaderComponent
+                           : placeholderComponent
         }
     }
 
@@ -50,6 +52,17 @@ Page {
             verticalAlignment: Text.AlignVCenter
             text: "请选择一本书开始阅读"
             color: "#4b5563"
+        }
+    }
+
+    Component {
+        id: pdfReaderComponent
+
+        PdfReader {
+            errorText: "当前构建未启用 PDF 渲染模块"
+            onLocatorChanged: function(locatorJson) {
+                controller.saveLocator(locatorJson)
+            }
         }
     }
 }
