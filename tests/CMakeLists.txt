@@ -7,6 +7,8 @@ add_executable(tst_bookrepository
     ../src/storage/AppPaths.cpp
     ../src/storage/AppPaths.h
     ../src/book/Book.h
+    ../src/book/BookRepository.cpp
+    ../src/book/BookRepository.h
 )
 
 target_include_directories(tst_bookrepository

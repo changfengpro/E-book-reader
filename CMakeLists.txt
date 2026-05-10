@@ -16,6 +16,8 @@ qt_add_executable(TabletEbookReader
     src/storage/AppPaths.cpp
     src/storage/AppPaths.h
     src/book/Book.h
+    src/book/BookRepository.cpp
+    src/book/BookRepository.h
 )
 
 qt_add_qml_module(TabletEbookReader
