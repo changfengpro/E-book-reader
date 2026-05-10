@@ -26,6 +26,7 @@ Page {
             anchors.fill: parent
             sourceComponent: controller.format === "txt" ? txtReaderComponent
                            : controller.format === "pdf" ? pdfReaderComponent
+                           : controller.format === "epub" ? epubReaderComponent
                            : placeholderComponent
         }
     }
@@ -60,6 +61,17 @@ Page {
 
         PdfReader {
             errorText: "当前构建未启用 PDF 渲染模块"
+            onLocatorChanged: function(locatorJson) {
+                controller.saveLocator(locatorJson)
+            }
+        }
+    }
+
+    Component {
+        id: epubReaderComponent
+
+        EpubReader {
+            errorText: "当前构建未启用 EPUB 解包模块"
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
             }

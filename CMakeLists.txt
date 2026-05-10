@@ -24,6 +24,8 @@ qt_add_executable(TabletEbookReader
     src/reader/ReaderController.h
     src/reader/PdfDocument.cpp
     src/reader/PdfDocument.h
+    src/reader/EpubDocument.cpp
+    src/reader/EpubDocument.h
     src/reader/TxtDocument.cpp
     src/reader/TxtDocument.h
 )
@@ -40,6 +42,7 @@ qt_add_qml_module(TabletEbookReader
         qml/pages/LibraryPage.qml
         qml/pages/ReaderPage.qml
         qml/pages/SettingsPage.qml
+        qml/readers/EpubReader.qml
         qml/readers/PdfReader.qml
         qml/readers/TxtReader.qml
 )
