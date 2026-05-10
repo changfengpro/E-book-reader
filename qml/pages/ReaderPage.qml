@@ -162,7 +162,15 @@ Page {
             imageUrl: page.pdfImageUrl
             statusText: page.safePdfStatusText
             onPageRequested: function(requestedPage, requestedZoom) {
-                page.renderPdfPage(requestedPage, requestedZoom)
+                if (page.activeFormat !== "pdf" || page.filePath.length === 0) {
+                    page.pdfImageUrl = ""
+                    page.pdfRenderError = ""
+                    return
+                }
+
+                const render = controller.renderPdfPage(page.filePath, requestedPage, requestedZoom) || {}
+                page.pdfImageUrl = String(render.imageUrl || "")
+                page.pdfRenderError = render.rendered === true ? "" : String(render.error || "PDF 页面渲染失败")
             }
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)

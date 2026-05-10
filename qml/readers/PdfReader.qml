@@ -6,10 +6,13 @@ Item {
     id: root
 
     property int page: 1
-    property int pageCount: 0
+    property var pageCount: 0
     property real zoom: 1.0
-    property string imageUrl: ""
-    property string statusText: ""
+    property var imageUrl: ""
+    property var statusText: ""
+    readonly property int safePageCount: Number(pageCount || 0)
+    readonly property string safeImageUrl: String(imageUrl || "")
+    readonly property string safeStatusText: String(statusText || "")
 
     signal pageRequested(int page, real zoom)
     signal locatorChanged(string locatorJson)
@@ -23,7 +26,7 @@ Item {
     }
 
     function nextPage() {
-        if (root.page < root.pageCount) {
+        if (root.page < root.safePageCount) {
             root.page += 1
             root.pageRequested(root.page, root.zoom)
             root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
@@ -46,14 +49,14 @@ Item {
             }
 
             Label {
-                text: root.pageCount > 0 ? root.page + " / " + root.pageCount : "0 / 0"
+                text: root.safePageCount > 0 ? root.page + " / " + root.safePageCount : "0 / 0"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
 
             Button {
                 text: "下一页"
-                enabled: root.page < root.pageCount
+                enabled: root.page < root.safePageCount
                 onClicked: root.nextPage()
             }
         }
@@ -81,7 +84,7 @@ Item {
             Image {
                 id: pageImage
                 anchors.centerIn: parent
-                source: root.imageUrl
+                source: root.safeImageUrl
                 fillMode: Image.PreserveAspectFit
                 cache: false
                 asynchronous: true
@@ -91,8 +94,8 @@ Item {
             Label {
                 anchors.centerIn: parent
                 width: Math.min(parent.width - 48, 520)
-                visible: root.imageUrl.length === 0
-                text: root.statusText
+                visible: root.safeImageUrl.length === 0
+                text: root.safeStatusText
                 color: "#4b5563"
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
