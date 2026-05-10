@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    property int page: 1
+    property int currentPage: 1
     property var pageCount: 0
     property real zoom: 1.0
     property var imageUrl: ""
@@ -18,18 +18,18 @@ Item {
     signal locatorChanged(string locatorJson)
 
     function previousPage() {
-        if (root.page > 1) {
-            root.page -= 1
-            root.pageRequested(root.page, root.zoom)
-            root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
+        if (root.currentPage > 1) {
+            root.currentPage -= 1
+            root.pageRequested(root.currentPage, root.zoom)
+            root.locatorChanged(JSON.stringify({ type: "pdf", page: root.currentPage, zoom: root.zoom }))
         }
     }
 
     function nextPage() {
-        if (root.page < root.safePageCount) {
-            root.page += 1
-            root.pageRequested(root.page, root.zoom)
-            root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
+        if (root.currentPage < root.safePageCount) {
+            root.currentPage += 1
+            root.pageRequested(root.currentPage, root.zoom)
+            root.locatorChanged(JSON.stringify({ type: "pdf", page: root.currentPage, zoom: root.zoom }))
         }
     }
 
@@ -44,19 +44,19 @@ Item {
 
             Button {
                 text: "上一页"
-                enabled: root.page > 1
+                enabled: root.currentPage > 1
                 onClicked: root.previousPage()
             }
 
             Label {
-                text: root.safePageCount > 0 ? root.page + " / " + root.safePageCount : "0 / 0"
+                text: root.safePageCount > 0 ? root.currentPage + " / " + root.safePageCount : "0 / 0"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
 
             Button {
                 text: "下一页"
-                enabled: root.page < root.safePageCount
+                enabled: root.currentPage < root.safePageCount
                 onClicked: root.nextPage()
             }
         }
@@ -68,8 +68,8 @@ Item {
             Layout.fillWidth: true
             onMoved: {
                 root.zoom = value
-                root.pageRequested(root.page, root.zoom)
-                root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
+                root.pageRequested(root.currentPage, root.zoom)
+                root.locatorChanged(JSON.stringify({ type: "pdf", page: root.currentPage, zoom: root.zoom }))
             }
         }
 

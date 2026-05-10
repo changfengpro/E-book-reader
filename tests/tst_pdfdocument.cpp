@@ -7,6 +7,7 @@ class PdfDocumentTest : public QObject {
 
 private slots:
     void readsPageCountFromPdfObjects();
+    void readsPageCountWithMutoolWhenObjectsAreCompressed();
     void rejectsMissingFile();
 };
 
@@ -46,6 +47,18 @@ endobj
     PdfDocument document;
     QVERIFY2(document.load(writeTempPdf(pdf)), qPrintable(document.lastError()));
     QCOMPARE(document.pageCount(), 3);
+}
+
+void PdfDocumentTest::readsPageCountWithMutoolWhenObjectsAreCompressed()
+{
+    const QString pdfPath = QStringLiteral("G:/RoboMaster/quaternion.pdf");
+    if (!QFileInfo::exists(pdfPath)) {
+        QSKIP("quaternion.pdf is not available");
+    }
+
+    PdfDocument document;
+    QVERIFY2(document.load(pdfPath), qPrintable(document.lastError()));
+    QCOMPARE(document.pageCount(), 73);
 }
 
 void PdfDocumentTest::rejectsMissingFile()

@@ -35,6 +35,11 @@ QString PdfPageRenderer::renderPage(const QString &filePath, int page, qreal zoo
     }
 
     const QString outputPath = outputPathFor(filePath, page, zoom);
+    const QFileInfo outputInfo(outputPath);
+    if (outputInfo.exists() && outputInfo.isFile() && outputInfo.size() > 0) {
+        return outputPath;
+    }
+
     const int dpi = qBound(72, static_cast<int>(144 * zoom), 360);
 
     QProcess process;
