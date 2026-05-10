@@ -1,12 +1,12 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
     id: root
 
     property string content: ""
     property string pageTurnMode: "vertical"
+    property real dragStartX: 0
+    property real dragStartY: 0
 
     signal positionChanged(real progress)
     signal previousBoundaryRequested()
@@ -31,16 +31,42 @@ Item {
         flick.contentY = Math.min(maxY, flick.contentY + step)
     }
 
+    function finishDrag(endX, endY) {
+        const dx = endX - dragStartX
+        const dy = endY - dragStartY
+        const minDistance = 64
+
+        if (root.pageTurnMode === "horizontal") {
+            if (Math.abs(dx) >= minDistance && Math.abs(dx) > Math.abs(dy)) {
+                if (dx < 0) {
+                    root.nextPage()
+                } else {
+                    root.previousPage()
+                }
+            }
+            return
+        }
+
+        const maxY = Math.max(0, flick.contentHeight - flick.height)
+        if (Math.abs(dy) >= minDistance && Math.abs(dy) > Math.abs(dx)) {
+            if (dy < 0 && flick.contentY >= maxY - 1) {
+                root.nextBoundaryRequested()
+            } else if (dy > 0 && flick.contentY <= 1) {
+                root.previousBoundaryRequested()
+            }
+        }
+    }
+
     onContentChanged: flick.contentY = 0
 
     Flickable {
         id: flick
         anchors.fill: parent
-        anchors.bottomMargin: 56
         clip: true
+        interactive: root.pageTurnMode === "vertical"
         contentWidth: width
         contentHeight: textItem.implicitHeight + 48
-        boundsBehavior: Flickable.StopAtBounds
+        boundsBehavior: root.pageTurnMode === "vertical" ? Flickable.DragOverBounds : Flickable.StopAtBounds
 
         onContentYChanged: {
             const scrollable = Math.max(1, contentHeight - height)
@@ -60,36 +86,17 @@ Item {
         }
     }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 56
-        color: "#f7f1e8"
+    DragHandler {
+        id: dragHandler
+        target: null
+        acceptedButtons: Qt.LeftButton
 
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 20
-            anchors.rightMargin: 20
-            spacing: 12
-
-            Button {
-                text: root.pageTurnMode === "horizontal" ? "上一页" : "上一屏"
-                Layout.fillWidth: true
-                onClicked: root.previousPage()
-            }
-
-            Label {
-                text: root.pageTurnMode === "horizontal" ? "左右翻页" : "上下翻页"
-                horizontalAlignment: Text.AlignHCenter
-                color: "#64748b"
-                Layout.preferredWidth: 112
-            }
-
-            Button {
-                text: root.pageTurnMode === "horizontal" ? "下一页" : "下一屏"
-                Layout.fillWidth: true
-                onClicked: root.nextPage()
+        onActiveChanged: {
+            if (active) {
+                root.dragStartX = centroid.position.x
+                root.dragStartY = centroid.position.y
+            } else {
+                root.finishDrag(centroid.position.x, centroid.position.y)
             }
         }
     }
