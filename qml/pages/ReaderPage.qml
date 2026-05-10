@@ -17,7 +17,6 @@ Page {
     property bool pdfLoaded: false
     property int pdfPageCount: 0
     property string pdfInfoError: ""
-    property string pdfImageUrl: ""
     property string pdfRenderError: ""
     readonly property string safePdfStatusText: pdfRenderError.length > 0
         ? pdfRenderError
@@ -159,18 +158,16 @@ Page {
 
         PdfReader {
             pageCount: page.pdfPageCount
-            imageUrl: page.pdfImageUrl
             statusText: page.safePdfStatusText
             onPageRequested: function(requestedPage, requestedZoom) {
                 if (page.activeFormat !== "pdf" || page.filePath.length === 0) {
-                    page.pdfImageUrl = ""
                     page.pdfRenderError = ""
                     return
                 }
 
                 const render = controller.renderPdfPage(page.filePath, requestedPage, requestedZoom) || {}
-                page.pdfImageUrl = String(render.imageUrl || "")
                 page.pdfRenderError = render.rendered === true ? "" : String(render.error || "PDF 页面渲染失败")
+                updatePageImage(requestedPage, render.rendered === true ? String(render.imageUrl || "") : "")
             }
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
@@ -207,7 +204,6 @@ Page {
             pdfLoaded = false
             pdfPageCount = 0
             pdfInfoError = ""
-            pdfImageUrl = ""
             pdfRenderError = ""
             return
         }
@@ -216,24 +212,7 @@ Page {
         pdfLoaded = info.loaded === true
         pdfPageCount = Number(info.pageCount || 0)
         pdfInfoError = String(info.error || "")
-        if (pdfLoaded) {
-            renderPdfPage(1, 1.0)
-        } else {
-            pdfImageUrl = ""
-            pdfRenderError = pdfInfoError
-        }
-    }
-
-    function renderPdfPage(pdfPage, zoom) {
-        if (activeFormat !== "pdf" || filePath.length === 0) {
-            pdfImageUrl = ""
-            pdfRenderError = ""
-            return
-        }
-
-        const render = controller.renderPdfPage(filePath, pdfPage, zoom) || {}
-        pdfImageUrl = String(render.imageUrl || "")
-        pdfRenderError = render.rendered === true ? "" : String(render.error || "PDF 页面渲染失败")
+        pdfRenderError = pdfLoaded ? "" : pdfInfoError
     }
 
     function refreshDocuments() {
