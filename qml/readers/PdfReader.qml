@@ -83,7 +83,10 @@ Item {
     Flickable {
         id: scroll
         anchors.fill: parent
-        anchors.margins: 24
+        anchors.leftMargin: 20
+        anchors.rightMargin: 20
+        anchors.topMargin: 18
+        anchors.bottomMargin: 22
         clip: true
         contentWidth: width
         contentHeight: pageColumn.height
@@ -95,35 +98,55 @@ Item {
         Column {
             id: pageColumn
             width: scroll.width
-            spacing: 20
+            spacing: 26
 
             Repeater {
                 model: pageModel
 
                 Item {
                     property int pageNumber: model.pageNumber
+                    property real pageAspectRatio: pageImage.status === Image.Ready && pageImage.implicitWidth > 0
+                        ? pageImage.implicitHeight / pageImage.implicitWidth
+                        : 1.414
 
                     width: pageColumn.width
-                    height: pageImage.status === Image.Ready
-                        ? pageImage.paintedHeight + pageNumberLabel.height + 16
-                        : Math.max(360, scroll.height * 0.8)
+                    height: paper.height + pageNumberLabel.height + 12
 
-                    Image {
-                        id: pageImage
+                    Rectangle {
+                        id: shadow
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.top
-                        source: model.imageUrl
-                        fillMode: Image.PreserveAspectFit
-                        cache: true
-                        asynchronous: true
-                        width: parent.width
-                        height: status === Image.Ready
-                            ? Math.min(implicitHeight, implicitHeight * (parent.width / Math.max(1, implicitWidth)))
-                            : parent.height - pageNumberLabel.height - 16
+                        anchors.topMargin: 2
+                        width: paper.width
+                        height: paper.height
+                        radius: 3
+                        color: "#000000"
+                        opacity: 0.08
+                    }
+
+                    Rectangle {
+                        id: paper
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        width: Math.min(parent.width, 980)
+                        height: width * pageAspectRatio
+                        radius: 2
+                        color: "#ffffff"
+                        border.width: 1
+                        border.color: "#ddd6ca"
+
+                        Image {
+                            id: pageImage
+                            anchors.fill: parent
+                            source: model.imageUrl
+                            fillMode: Image.PreserveAspectFit
+                            cache: true
+                            asynchronous: true
+                        }
                     }
 
                     BusyIndicator {
-                        anchors.centerIn: parent
+                        anchors.centerIn: paper
                         running: pageImage.status !== Image.Ready
                         visible: running
                     }
@@ -131,10 +154,11 @@ Item {
                     Label {
                         id: pageNumberLabel
                         anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: pageImage.bottom
-                        anchors.topMargin: 8
+                        anchors.top: paper.bottom
+                        anchors.topMargin: 10
                         text: pageNumber + " / " + root.safePageCount
-                        color: "#4b5563"
+                        color: "#756c60"
+                        font.pixelSize: 13
                     }
                 }
             }

@@ -47,7 +47,7 @@ Page {
 
     Rectangle {
         anchors.fill: parent
-        color: "#f7f1e8"
+        color: activeFormat === "pdf" ? "#eee7dc" : "#f7f1e8"
 
         Loader {
             anchors.fill: parent

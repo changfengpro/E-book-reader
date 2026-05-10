@@ -65,7 +65,7 @@ Item {
         clip: true
         interactive: root.pageTurnMode === "vertical"
         contentWidth: width
-        contentHeight: textItem.implicitHeight + 48
+        contentHeight: textItem.implicitHeight + 72
         boundsBehavior: root.pageTurnMode === "vertical" ? Flickable.DragOverBounds : Flickable.StopAtBounds
 
         onContentYChanged: {
@@ -75,14 +75,14 @@ Item {
 
         Text {
             id: textItem
-            width: flick.width - 48
-            x: 24
-            y: 24
+            width: Math.min(flick.width - 56, 860)
+            x: Math.max(28, (flick.width - width) / 2)
+            y: 36
             text: root.content.length > 0 ? root.content : "请选择一本 TXT 书籍"
             wrapMode: Text.WordWrap
-            font.pixelSize: 20
-            lineHeight: 1.45
-            color: "#2d2925"
+            font.pixelSize: 21
+            lineHeight: 1.55
+            color: "#26211c"
         }
     }
 
