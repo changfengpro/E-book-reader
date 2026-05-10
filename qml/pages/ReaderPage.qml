@@ -7,6 +7,9 @@ Page {
     id: page
 
     property string bookId: ""
+    property string filePath: ""
+    property string formatOverride: ""
+    property string titleOverride: ""
 
     ReaderController {
         id: controller
@@ -14,7 +17,7 @@ Page {
     }
 
     header: ReaderToolbar {
-        title: controller.title
+        title: page.titleOverride.length > 0 ? page.titleOverride : controller.title
         onBackRequested: StackView.view.pop()
     }
 
@@ -24,18 +27,22 @@ Page {
 
         Loader {
             anchors.fill: parent
-            sourceComponent: controller.format === "txt" ? txtReaderComponent
-                           : controller.format === "pdf" ? pdfReaderComponent
-                           : controller.format === "epub" ? epubReaderComponent
+            sourceComponent: activeFormat === "txt" ? txtReaderComponent
+                           : activeFormat === "pdf" ? pdfReaderComponent
+                           : activeFormat === "epub" ? epubReaderComponent
                            : placeholderComponent
         }
     }
+
+    readonly property string activeFormat: page.formatOverride.length > 0 ? page.formatOverride : controller.format
 
     Component {
         id: txtReaderComponent
 
         TxtReader {
-            content: "第一章\n\n夜色落在窗边，书页安静地展开。这里会显示当前书籍的正文，阅读位置会随着滚动保存。"
+            content: page.filePath.length > 0
+                ? controller.loadTextFile(page.filePath)
+                : "请选择一本 TXT 书籍"
             onPositionChanged: function(progress) {
                 controller.saveLocator(JSON.stringify({
                     type: "txt",

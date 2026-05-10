@@ -65,3 +65,32 @@ target_link_libraries(tst_txtdocument
 )
 
 add_test(NAME tst_txtdocument COMMAND $<TARGET_FILE:tst_txtdocument>)
+
+add_executable(tst_librarycontroller
+    tst_librarycontroller.cpp
+    ../src/book/LibraryController.cpp
+    ../src/book/LibraryController.h
+    ../src/book/BookImporter.cpp
+    ../src/book/BookImporter.h
+    ../src/book/BookRepository.cpp
+    ../src/book/BookRepository.h
+    ../src/storage/AppDatabase.cpp
+    ../src/storage/AppDatabase.h
+    ../src/storage/AppPaths.cpp
+    ../src/storage/AppPaths.h
+    ../src/book/Book.h
+)
+
+target_include_directories(tst_librarycontroller
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src
+)
+
+target_link_libraries(tst_librarycontroller
+    PRIVATE
+        Qt6::Core
+        Qt6::Sql
+        Qt6::Test
+)
+
+add_test(NAME tst_librarycontroller COMMAND $<TARGET_FILE:tst_librarycontroller>)

@@ -22,6 +22,8 @@ qt_add_executable(TabletEbookReader
     src/book/Book.h
     src/book/BookImporter.cpp
     src/book/BookImporter.h
+    src/book/LibraryController.cpp
+    src/book/LibraryController.h
     src/book/BookRepository.cpp
     src/book/BookRepository.h
     src/reader/ReaderController.cpp

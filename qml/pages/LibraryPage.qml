@@ -1,17 +1,30 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import EbookReader
+import EbookReader.Backend
 
 Page {
     id: page
 
-    signal openBook(string bookId)
+    signal openBook(var book)
     signal openSettings()
     signal importRequested()
 
     readonly property bool tabletWide: width >= 900
     readonly property int columnCount: width >= 1200 ? 5 : tabletWide ? 4 : 2
+
+    LibraryController {
+        id: library
+    }
+
+    FileDialog {
+        id: importDialog
+        title: "导入书籍"
+        nameFilters: ["电子书 (*.txt *.pdf *.epub)"]
+        onAccepted: library.importLocalFile(selectedFile)
+    }
 
     background: Rectangle {
         color: "#eef2f6"
@@ -32,36 +45,16 @@ Page {
             }
 
             ImportButton {
-                onClicked: page.importRequested()
+                onClicked: {
+                    page.importRequested()
+                    importDialog.open()
+                }
             }
 
             Button {
                 text: "设置"
                 onClicked: page.openSettings()
             }
-        }
-    }
-
-    ListModel {
-        id: libraryModel
-
-        ListElement {
-            bookId: "sample-txt"
-            title: "长篇小说"
-            format: "txt"
-            progress: 0.37
-        }
-        ListElement {
-            bookId: "sample-pdf"
-            title: "技术手册"
-            format: "pdf"
-            progress: 0.18
-        }
-        ListElement {
-            bookId: "sample-epub"
-            title: "文学选集"
-            format: "epub"
-            progress: 0.64
         }
     }
 
@@ -85,10 +78,18 @@ Page {
             }
         }
 
+        Label {
+            visible: library.lastError.length > 0
+            text: library.lastError
+            color: "#b42318"
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
         GridView {
             id: grid
-            visible: libraryModel.count > 0
-            model: libraryModel
+            visible: library.books.length > 0
+            model: library.books
             cellWidth: Math.max(156, Math.floor(width / page.columnCount))
             cellHeight: 286
             clip: true
@@ -103,20 +104,23 @@ Page {
                 BookCard {
                     anchors.centerIn: parent
                     width: Math.min(parent.width - 16, 196)
-                    bookId: model.bookId
-                    title: model.title
-                    format: model.format
-                    progress: model.progress
-                    onOpenBook: function(id) { page.openBook(id) }
+                    bookId: modelData.bookId
+                    title: modelData.title
+                    format: modelData.format
+                    progress: modelData.progress
+                    onOpenBook: function() { page.openBook(modelData) }
                 }
             }
         }
 
         EmptyLibraryView {
-            visible: libraryModel.count === 0
+            visible: library.books.length === 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            onImportRequested: page.importRequested()
+            onImportRequested: {
+                page.importRequested()
+                importDialog.open()
+            }
         }
     }
 }

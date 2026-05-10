@@ -1,10 +1,10 @@
 # 安卓平板电子书阅读器
 
-基于 Qt 6 + QML/C++ 的本地电子书阅读器，目标平台是安卓平板。当前版本实现了项目骨架、书架界面、本地导入服务、SQLite 书库、TXT 解码阅读能力，以及 PDF/EPUB 的可替换阅读接口。
+基于 Qt 6 + QML/C++ 的本地电子书阅读器，目标平台是安卓平板。当前版本实现了项目骨架、书架界面、本地导入服务、SQLite 书库、TXT 解码和真实文件阅读能力，以及 PDF/EPUB 的可替换阅读接口。
 
 ## 支持格式
 
-- TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码。
+- TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码，已接入本地导入和阅读页。
 - PDF：已提供文档接口和阅读界面，当前构建未接入真实 PDF 渲染模块。
 - EPUB：已提供目录/章节接口和阅读界面，当前构建未接入真实 EPUB 解包模块。
 
@@ -39,8 +39,7 @@ $env:PATH="D:\Qt\Tools\mingw1310_64\bin;D:\Qt\6.10.2\mingw_64\bin;$env:PATH"
 
 ## 后续实现重点
 
-- 接入 Android 文件选择器 URI。
-- 将导入服务与 QML 书架模型打通。
+- 接入 Android 文件选择器 URI 的持久权限处理。
 - 接入 Qt PDF 或 MuPDF。
 - 接入 EPUB zip 解包和 OPF/Nav 解析。
 - 将阅读设置保存到 SQLite。

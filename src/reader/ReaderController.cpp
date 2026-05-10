@@ -1,5 +1,7 @@
 #include "ReaderController.h"
 
+#include "reader/TxtDocument.h"
+
 ReaderController::ReaderController(QObject *parent)
     : QObject(parent)
 {
@@ -44,4 +46,13 @@ void ReaderController::saveLocator(const QString &locatorJson)
 QString ReaderController::savedLocator() const
 {
     return m_locatorJson;
+}
+
+QString ReaderController::loadTextFile(const QString &filePath)
+{
+    TxtDocument document;
+    if (!document.load(filePath)) {
+        return document.lastError();
+    }
+    return document.text();
 }

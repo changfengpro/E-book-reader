@@ -19,6 +19,7 @@ public:
 
     Q_INVOKABLE void saveLocator(const QString &locatorJson);
     Q_INVOKABLE QString savedLocator() const;
+    Q_INVOKABLE QString loadTextFile(const QString &filePath);
 
 signals:
     void bookChanged();

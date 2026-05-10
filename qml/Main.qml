@@ -14,8 +14,13 @@ ApplicationWindow {
         anchors.fill: parent
         initialItem: LibraryPage {
             onOpenSettings: stack.push(settingsPage)
-            onOpenBook: function(bookId) {
-                stack.push(readerPage, { bookId: bookId })
+            onOpenBook: function(book) {
+                stack.push(readerPage, {
+                    bookId: book.bookId,
+                    filePath: book.filePath,
+                    formatOverride: book.format,
+                    titleOverride: book.title
+                })
             }
         }
     }
