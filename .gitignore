@@ -1,0 +1,22 @@
+.superpowers/
+
+# Qt / CMake build outputs
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+!CMakeLists.txt
+
+# Android / Gradle generated files
+.gradle/
+*.apk
+*.aab
+
+# IDE and OS files
+.idea/
+.vscode/
+*.user
+*.swp
+Thumbs.db
+desktop.ini
