@@ -31,6 +31,8 @@ signals:
 
 private:
     bool initialize();
+    bool importContentUri(const QUrl &sourceUrl);
+    bool saveImportedBook(const Book &book);
     void setLastError(const QString &error);
     QVariantMap toMap(const Book &book) const;
 

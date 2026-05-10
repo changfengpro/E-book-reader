@@ -1,12 +1,12 @@
 # 安卓平板电子书阅读器
 
-基于 Qt 6 + QML/C++ 的本地电子书阅读器，目标平台是安卓平板。当前版本实现了项目骨架、书架界面、本地导入服务、SQLite 书库、TXT 解码和真实文件阅读能力，以及 PDF/EPUB 的可替换阅读接口。
+基于 Qt 6 + QML/C++ 的本地电子书阅读器，目标平台是安卓平板。当前版本已经打通项目骨架、书架界面、本地导入服务、SQLite 书库、TXT 解码和真实文件阅读链路，并为 PDF/EPUB 保留可替换阅读接口。
 
 ## 支持格式
 
-- TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码，已接入本地导入和阅读页。
-- PDF：已提供文档接口和阅读界面，当前构建未接入真实 PDF 渲染模块。
-- EPUB：已提供目录/章节接口和阅读界面，当前构建未接入真实 EPUB 解包模块。
+- TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码，已接入导入和阅读页。
+- PDF：已提供文档接口和阅读界面，当前构建尚未接入真实 PDF 渲染模块。
+- EPUB：已提供目录/章节接口和阅读界面，当前构建尚未接入真实 EPUB 解包模块。
 
 ## 本地构建
 
@@ -29,17 +29,24 @@ $env:PATH="D:\Qt\Tools\mingw1310_64\bin;D:\Qt\6.10.2\mingw_64\bin;$env:PATH"
 .\build-qt6\TabletEbookReader.exe
 ```
 
+## 导入链路
+
+- 桌面端：`FileDialog` 返回本地文件路径，`BookImporter` 复制原始文件到应用书库目录。
+- 安卓端：已为 `content://` 文档 URI 建立导入入口，尝试通过 Qt/Android 文件引擎以只读流复制到应用书库。
+- 真机注意：Android 文档 URI 的长期访问权限和不同文件管理器兼容性仍需要在平板上验证。
+
 ## 测试
 
 当前自动化测试包括：
 
 - `tst_bookrepository`：SQLite 初始化、书籍元数据和阅读位置保存。
-- `tst_bookimporter`：TXT、PDF、EPUB 格式识别。
+- `tst_bookimporter`：TXT/PDF/EPUB 格式识别，以及从已打开文件流导入。
 - `tst_txtdocument`：TXT 编码读取。
+- `tst_librarycontroller`：书架控制器导入本地文件并刷新书籍列表。
 
 ## 后续实现重点
 
-- 接入 Android 文件选择器 URI 的持久权限处理。
+- 在安卓真机上验证并加固文档 URI 持久权限处理。
 - 接入 Qt PDF 或 MuPDF。
 - 接入 EPUB zip 解包和 OPF/Nav 解析。
 - 将阅读设置保存到 SQLite。

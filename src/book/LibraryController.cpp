@@ -1,5 +1,6 @@
 #include "LibraryController.h"
 
+#include <QFile>
 #include <QFileInfo>
 #include <QMimeDatabase>
 
@@ -47,26 +48,23 @@ bool LibraryController::importLocalFile(const QUrl &sourceUrl)
         return false;
     }
 
-    const QString sourcePath = sourceUrl.isLocalFile() ? sourceUrl.toLocalFile() : sourceUrl.toString();
-    if (sourcePath.isEmpty()) {
-        setLastError(QStringLiteral("请选择本地文件"));
-        return false;
+    if (sourceUrl.isLocalFile()) {
+        const QString sourcePath = sourceUrl.toLocalFile();
+        if (sourcePath.isEmpty()) {
+            setLastError(QStringLiteral("请选择本地文件"));
+            return false;
+        }
+
+        const QString mimeType = QMimeDatabase().mimeTypeForFile(QFileInfo(sourcePath)).name();
+        return saveImportedBook(m_importer->importLocalFile(sourcePath, mimeType));
     }
 
-    const QString mimeType = QMimeDatabase().mimeTypeForFile(QFileInfo(sourcePath)).name();
-    Book book = m_importer->importLocalFile(sourcePath, mimeType);
-    if (book.id.isEmpty()) {
-        setLastError(m_importer->lastError());
-        return false;
+    if (sourceUrl.scheme() == QStringLiteral("content")) {
+        return importContentUri(sourceUrl);
     }
 
-    if (!m_repository->saveBook(book)) {
-        setLastError(m_repository->lastError());
-        return false;
-    }
-
-    setLastError(QString());
-    return refresh();
+    setLastError(QStringLiteral("请选择本地文件或 Android 文档"));
+    return false;
 }
 
 bool LibraryController::initialize()
@@ -84,6 +82,45 @@ bool LibraryController::initialize()
 
     m_repository = std::make_unique<BookRepository>(m_database->database());
     m_importer = std::make_unique<BookImporter>(m_paths);
+    return refresh();
+}
+
+bool LibraryController::importContentUri(const QUrl &sourceUrl)
+{
+#ifdef Q_OS_ANDROID
+    QFile sourceFile(sourceUrl.toString());
+    if (!sourceFile.open(QIODevice::ReadOnly)) {
+        setLastError(QStringLiteral("无法读取 Android 文档"));
+        return false;
+    }
+
+    QString displayName = sourceUrl.fileName();
+    if (displayName.isEmpty()) {
+        displayName = QStringLiteral("android-document");
+    }
+
+    const QString mimeType = QMimeDatabase().mimeTypeForFile(displayName).name();
+    return saveImportedBook(m_importer->importFromReadableFile(displayName, mimeType, sourceFile));
+#else
+    Q_UNUSED(sourceUrl);
+    setLastError(QStringLiteral("当前平台不支持 Android 文档 URI"));
+    return false;
+#endif
+}
+
+bool LibraryController::saveImportedBook(const Book &book)
+{
+    if (book.id.isEmpty()) {
+        setLastError(m_importer->lastError());
+        return false;
+    }
+
+    if (!m_repository->saveBook(book)) {
+        setLastError(m_repository->lastError());
+        return false;
+    }
+
+    setLastError(QString());
     return refresh();
 }
 
