@@ -8,6 +8,7 @@ ApplicationWindow {
     height: 800
     visible: true
     title: "E-Book Reader"
+    property string pageTurnMode: "vertical"
 
     StackView {
         id: stack
@@ -27,12 +28,19 @@ ApplicationWindow {
 
     Component {
         id: settingsPage
-        SettingsPage {}
+        SettingsPage {
+            pageTurnMode: window.pageTurnMode
+            onBackRequested: stack.pop()
+            onPageTurnModeSelected: function(mode) {
+                window.pageTurnMode = mode
+            }
+        }
     }
 
     Component {
         id: readerPage
         ReaderPage {
+            pageTurnMode: window.pageTurnMode
             onBackRequested: stack.pop()
             onSettingsRequested: stack.push(settingsPage)
         }

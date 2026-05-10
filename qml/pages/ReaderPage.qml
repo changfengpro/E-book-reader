@@ -11,6 +11,7 @@ Page {
     property string filePath: ""
     property string formatOverride: ""
     property string titleOverride: ""
+    property string pageTurnMode: "vertical"
     property int currentChapterIndex: 0
     property var textChapters: []
 
@@ -117,6 +118,9 @@ Page {
             content: page.filePath.length > 0
                 ? controller.loadTextChapter(page.filePath, page.currentChapterIndex)
                 : "请选择一本 TXT 书籍"
+            pageTurnMode: page.pageTurnMode
+            onPreviousBoundaryRequested: page.previousChapter()
+            onNextBoundaryRequested: page.nextChapter()
             onPositionChanged: function(progress) {
                 controller.saveLocator(JSON.stringify({
                     type: "txt",
@@ -170,6 +174,18 @@ Page {
         textChapters = controller.loadTextChapters(filePath)
         if (currentChapterIndex >= textChapters.length) {
             currentChapterIndex = 0
+        }
+    }
+
+    function previousChapter() {
+        if (currentChapterIndex > 0) {
+            currentChapterIndex -= 1
+        }
+    }
+
+    function nextChapter() {
+        if (currentChapterIndex + 1 < textChapters.length) {
+            currentChapterIndex += 1
         }
     }
 }

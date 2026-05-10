@@ -5,6 +5,11 @@ import QtQuick.Layouts
 Page {
     id: page
 
+    property string pageTurnMode: "vertical"
+
+    signal backRequested()
+    signal pageTurnModeSelected(string mode)
+
     background: Rectangle {
         color: "#f8fafc"
     }
@@ -18,7 +23,7 @@ Page {
 
             ToolButton {
                 text: "返回"
-                onClicked: StackView.view.pop()
+                onClicked: page.backRequested()
             }
 
             Label {
@@ -81,6 +86,41 @@ Page {
                         value: 1.45
                         stepSize: 0.05
                         Layout.fillWidth: true
+                    }
+                }
+            }
+
+            Frame {
+                Layout.fillWidth: true
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 12
+
+                    Label {
+                        text: "翻页方式"
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Button {
+                            text: "上下"
+                            checkable: true
+                            checked: page.pageTurnMode === "vertical"
+                            Layout.fillWidth: true
+                            onClicked: page.pageTurnModeSelected("vertical")
+                        }
+
+                        Button {
+                            text: "左右"
+                            checkable: true
+                            checked: page.pageTurnMode === "horizontal"
+                            Layout.fillWidth: true
+                            onClicked: page.pageTurnModeSelected("horizontal")
+                        }
                     }
                 }
             }
