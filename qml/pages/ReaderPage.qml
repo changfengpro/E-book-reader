@@ -14,18 +14,17 @@ Page {
     property string pageTurnMode: "vertical"
     property int currentChapterIndex: 0
     property var textChapters: []
-    property var pdfInfo: ({ loaded: false, pageCount: 0, error: "" })
-    property var pdfRender: ({ rendered: false, imageUrl: "", error: "" })
-    readonly property var currentPdfInfo: pdfInfo ? pdfInfo : ({ loaded: false, pageCount: 0, error: "" })
-    readonly property var currentPdfRender: pdfRender ? pdfRender : ({ rendered: false, imageUrl: "", error: "" })
-    readonly property int safePdfPageCount: currentPdfInfo.pageCount ? currentPdfInfo.pageCount : 0
-    readonly property string safePdfImageUrl: currentPdfRender.imageUrl ? currentPdfRender.imageUrl : ""
-    readonly property string safePdfStatusText: currentPdfRender.error && currentPdfRender.error.length > 0
-        ? currentPdfRender.error
-        : currentPdfInfo.loaded
+    property bool pdfLoaded: false
+    property int pdfPageCount: 0
+    property string pdfInfoError: ""
+    property string pdfImageUrl: ""
+    property string pdfRenderError: ""
+    readonly property string safePdfStatusText: pdfRenderError.length > 0
+        ? pdfRenderError
+        : pdfLoaded
             ? "正在渲染 PDF 页面..."
-            : currentPdfInfo.error && currentPdfInfo.error.length > 0
-                ? currentPdfInfo.error
+            : pdfInfoError.length > 0
+                ? pdfInfoError
                 : "请选择一本 PDF 书籍"
 
     signal backRequested()
@@ -159,8 +158,8 @@ Page {
         id: pdfReaderComponent
 
         PdfReader {
-            pageCount: page.safePdfPageCount
-            imageUrl: page.safePdfImageUrl
+            pageCount: page.pdfPageCount
+            imageUrl: page.pdfImageUrl
             statusText: page.safePdfStatusText
             onPageRequested: function(requestedPage, requestedZoom) {
                 page.renderPdfPage(requestedPage, requestedZoom)
@@ -197,27 +196,36 @@ Page {
 
     function refreshPdfInfo() {
         if (activeFormat !== "pdf" || filePath.length === 0) {
-            pdfInfo = { loaded: false, pageCount: 0, error: "" }
-            pdfRender = { rendered: false, imageUrl: "", error: "" }
+            pdfLoaded = false
+            pdfPageCount = 0
+            pdfInfoError = ""
+            pdfImageUrl = ""
+            pdfRenderError = ""
             return
         }
 
-        pdfInfo = controller.loadPdfInfo(filePath) || { loaded: false, pageCount: 0, error: "无法读取 PDF 信息" }
-        if (pdfInfo.loaded) {
+        const info = controller.loadPdfInfo(filePath) || {}
+        pdfLoaded = info.loaded === true
+        pdfPageCount = Number(info.pageCount || 0)
+        pdfInfoError = String(info.error || "")
+        if (pdfLoaded) {
             renderPdfPage(1, 1.0)
         } else {
-            pdfRender = { rendered: false, imageUrl: "", error: pdfInfo.error || "" }
+            pdfImageUrl = ""
+            pdfRenderError = pdfInfoError
         }
     }
 
     function renderPdfPage(pdfPage, zoom) {
         if (activeFormat !== "pdf" || filePath.length === 0) {
-            pdfRender = { rendered: false, imageUrl: "", error: "" }
+            pdfImageUrl = ""
+            pdfRenderError = ""
             return
         }
 
-        pdfRender = controller.renderPdfPage(filePath, pdfPage, zoom)
-            || { rendered: false, imageUrl: "", error: "PDF 页面渲染失败" }
+        const render = controller.renderPdfPage(filePath, pdfPage, zoom) || {}
+        pdfImageUrl = String(render.imageUrl || "")
+        pdfRenderError = render.rendered === true ? "" : String(render.error || "PDF 页面渲染失败")
     }
 
     function refreshDocuments() {
