@@ -46,3 +46,22 @@ target_link_libraries(tst_bookimporter
 )
 
 add_test(NAME tst_bookimporter COMMAND $<TARGET_FILE:tst_bookimporter>)
+
+add_executable(tst_txtdocument
+    tst_txtdocument.cpp
+    ../src/reader/TxtDocument.cpp
+    ../src/reader/TxtDocument.h
+)
+
+target_include_directories(tst_txtdocument
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src
+)
+
+target_link_libraries(tst_txtdocument
+    PRIVATE
+        Qt6::Core
+        Qt6::Test
+)
+
+add_test(NAME tst_txtdocument COMMAND $<TARGET_FILE:tst_txtdocument>)

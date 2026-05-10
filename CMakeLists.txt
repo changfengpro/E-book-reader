@@ -20,6 +20,8 @@ qt_add_executable(TabletEbookReader
     src/book/BookImporter.h
     src/book/BookRepository.cpp
     src/book/BookRepository.h
+    src/reader/TxtDocument.cpp
+    src/reader/TxtDocument.h
 )
 
 qt_add_qml_module(TabletEbookReader
@@ -33,6 +35,7 @@ qt_add_qml_module(TabletEbookReader
         qml/pages/LibraryPage.qml
         qml/pages/ReaderPage.qml
         qml/pages/SettingsPage.qml
+        qml/readers/TxtReader.qml
 )
 
 target_link_libraries(TabletEbookReader
