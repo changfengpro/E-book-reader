@@ -5,7 +5,7 @@
 ## 支持格式
 
 - TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码，已接入导入和阅读页。
-- PDF：已提供文档接口和阅读界面，当前构建尚未接入真实 PDF 渲染模块。
+- PDF：已接入文件读取、页数识别、页码导航和阅读状态保存；当前构建尚未接入真实 PDF 渲染模块。
 - EPUB：已提供目录/章节接口和阅读界面，当前构建尚未接入真实 EPUB 解包模块。
 
 ## 本地构建
@@ -41,7 +41,8 @@ $env:PATH="D:\Qt\Tools\mingw1310_64\bin;D:\Qt\6.10.2\mingw_64\bin;$env:PATH"
 
 - `tst_bookrepository`：SQLite 初始化、书籍元数据和阅读位置保存。
 - `tst_bookimporter`：TXT/PDF/EPUB 格式识别，以及从已打开文件流导入。
-- `tst_txtdocument`：TXT 编码读取。
+- `tst_txtdocument`：TXT 编码读取和章节识别。
+- `tst_pdfdocument`：PDF 文件识别和页数解析。
 - `tst_librarycontroller`：书架控制器导入本地文件并刷新书籍列表。
 
 ## 后续实现重点

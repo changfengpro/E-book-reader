@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include <QVariantMap>
 
 class ReaderController : public QObject {
     Q_OBJECT
@@ -25,6 +26,7 @@ public:
     Q_INVOKABLE QString loadTextFile(const QString &filePath);
     Q_INVOKABLE QVariantList loadTextChapters(const QString &filePath);
     Q_INVOKABLE QString loadTextChapter(const QString &filePath, int chapterIndex);
+    Q_INVOKABLE QVariantMap loadPdfInfo(const QString &filePath);
 
 signals:
     void bookChanged();

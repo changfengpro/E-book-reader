@@ -14,6 +14,7 @@ Page {
     property string pageTurnMode: "vertical"
     property int currentChapterIndex: 0
     property var textChapters: []
+    property var pdfInfo: ({ loaded: false, pageCount: 0, error: "" })
 
     signal backRequested()
     signal settingsRequested()
@@ -23,9 +24,9 @@ Page {
         bookId: page.bookId
     }
 
-    Component.onCompleted: refreshTextChapters()
-    onFilePathChanged: refreshTextChapters()
-    onActiveFormatChanged: refreshTextChapters()
+    Component.onCompleted: refreshDocuments()
+    onFilePathChanged: refreshDocuments()
+    onActiveFormatChanged: refreshDocuments()
 
     header: ReaderToolbar {
         title: page.titleOverride.length > 0 ? page.titleOverride : controller.title
@@ -146,7 +147,12 @@ Page {
         id: pdfReaderComponent
 
         PdfReader {
-            errorText: "当前构建未启用 PDF 渲染模块"
+            pageCount: page.pdfInfo.pageCount || 0
+            statusText: page.pdfInfo.loaded
+                ? "PDF 已载入，当前页 " + pageCount + " 页。"
+                : page.pdfInfo.error.length > 0
+                    ? page.pdfInfo.error
+                    : "请选择一本 PDF 书籍"
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
             }
@@ -175,6 +181,20 @@ Page {
         if (currentChapterIndex >= textChapters.length) {
             currentChapterIndex = 0
         }
+    }
+
+    function refreshPdfInfo() {
+        if (activeFormat !== "pdf" || filePath.length === 0) {
+            pdfInfo = { loaded: false, pageCount: 0, error: "" }
+            return
+        }
+
+        pdfInfo = controller.loadPdfInfo(filePath)
+    }
+
+    function refreshDocuments() {
+        refreshTextChapters()
+        refreshPdfInfo()
     }
 
     function previousChapter() {

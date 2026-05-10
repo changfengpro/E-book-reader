@@ -6,11 +6,25 @@ Item {
     id: root
 
     property int page: 1
-    property int pageCount: 1
+    property int pageCount: 0
     property real zoom: 1.0
-    property string errorText: ""
+    property string statusText: ""
 
     signal locatorChanged(string locatorJson)
+
+    function previousPage() {
+        if (root.page > 1) {
+            root.page -= 1
+            root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
+        }
+    }
+
+    function nextPage() {
+        if (root.page < root.pageCount) {
+            root.page += 1
+            root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -24,14 +38,11 @@ Item {
             Button {
                 text: "上一页"
                 enabled: root.page > 1
-                onClicked: {
-                    root.page -= 1
-                    root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
-                }
+                onClicked: root.previousPage()
             }
 
             Label {
-                text: root.page + " / " + root.pageCount
+                text: root.pageCount > 0 ? root.page + " / " + root.pageCount : "0 / 0"
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
@@ -39,10 +50,7 @@ Item {
             Button {
                 text: "下一页"
                 enabled: root.page < root.pageCount
-                onClicked: {
-                    root.page += 1
-                    root.locatorChanged(JSON.stringify({ type: "pdf", page: root.page, zoom: root.zoom }))
-                }
+                onClicked: root.nextPage()
             }
         }
 
@@ -64,13 +72,27 @@ Item {
             border.color: "#d7dee8"
             radius: 8
 
-            Label {
+            ColumnLayout {
                 anchors.centerIn: parent
-                width: parent.width - 48
-                text: root.errorText.length > 0 ? root.errorText : "PDF 页面将在这里显示"
-                color: "#4b5563"
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
+                width: Math.min(parent.width - 48, 520)
+                spacing: 10
+
+                Label {
+                    text: root.statusText
+                    color: "#4b5563"
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+
+                Label {
+                    visible: root.pageCount > 0
+                    text: "已识别 PDF 页数，渲染后端接入后这里会显示页面内容。"
+                    color: "#64748b"
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
             }
         }
     }

@@ -66,6 +66,25 @@ target_link_libraries(tst_txtdocument
 
 add_test(NAME tst_txtdocument COMMAND $<TARGET_FILE:tst_txtdocument>)
 
+add_executable(tst_pdfdocument
+    tst_pdfdocument.cpp
+    ../src/reader/PdfDocument.cpp
+    ../src/reader/PdfDocument.h
+)
+
+target_include_directories(tst_pdfdocument
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src
+)
+
+target_link_libraries(tst_pdfdocument
+    PRIVATE
+        Qt6::Core
+        Qt6::Test
+)
+
+add_test(NAME tst_pdfdocument COMMAND $<TARGET_FILE:tst_pdfdocument>)
+
 add_executable(tst_librarycontroller
     tst_librarycontroller.cpp
     ../src/book/LibraryController.cpp

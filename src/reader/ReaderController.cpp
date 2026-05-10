@@ -1,5 +1,7 @@
 #include "ReaderController.h"
 
+#include "reader/PdfDocument.h"
+
 #include <QVariantMap>
 
 ReaderController::ReaderController(QObject *parent)
@@ -80,6 +82,24 @@ QString ReaderController::loadTextChapter(const QString &filePath, int chapterIn
         return m_textDocument.lastError();
     }
     return m_textDocument.chapterText(chapterIndex);
+}
+
+QVariantMap ReaderController::loadPdfInfo(const QString &filePath)
+{
+    PdfDocument document;
+    if (!document.load(filePath)) {
+        return {
+            { QStringLiteral("loaded"), false },
+            { QStringLiteral("pageCount"), 0 },
+            { QStringLiteral("error"), document.lastError() }
+        };
+    }
+
+    return {
+        { QStringLiteral("loaded"), true },
+        { QStringLiteral("pageCount"), document.pageCount() },
+        { QStringLiteral("error"), QString() }
+    };
 }
 
 bool ReaderController::ensureTextDocumentLoaded(const QString &filePath)
