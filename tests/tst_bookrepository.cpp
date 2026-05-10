@@ -79,6 +79,10 @@ void BookRepositoryTest::savesAndLoadsReadingPosition()
     const QString locator = R"({"type":"txt","offset":120,"progress":0.4})";
     QVERIFY2(repository.saveReadingPosition("book-1", locator), qPrintable(repository.lastError()));
     QCOMPARE(repository.readingPosition("book-1"), locator);
+
+    const QString updatedLocator = R"({"type":"txt","offset":240,"progress":0.8})";
+    QVERIFY2(repository.saveReadingPosition("book-1", updatedLocator), qPrintable(repository.lastError()));
+    QCOMPARE(repository.readingPosition("book-1"), updatedLocator);
 }
 
 QTEST_MAIN(BookRepositoryTest)
