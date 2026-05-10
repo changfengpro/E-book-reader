@@ -11,6 +11,11 @@ qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(TabletEbookReader
     src/main.cpp
+    src/storage/AppDatabase.cpp
+    src/storage/AppDatabase.h
+    src/storage/AppPaths.cpp
+    src/storage/AppPaths.h
+    src/book/Book.h
 )
 
 qt_add_qml_module(TabletEbookReader
@@ -30,3 +35,11 @@ target_link_libraries(TabletEbookReader
         Qt6::Quick
         Qt6::Sql
 )
+
+target_include_directories(TabletEbookReader
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+enable_testing()
+add_subdirectory(tests)
