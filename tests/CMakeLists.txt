@@ -23,4 +23,4 @@ target_link_libraries(tst_bookrepository
         Qt6::Test
 )
 
-add_test(NAME tst_bookrepository COMMAND tst_bookrepository)
+add_test(NAME tst_bookrepository COMMAND $<TARGET_FILE:tst_bookrepository>)
