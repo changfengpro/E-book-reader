@@ -21,9 +21,47 @@ QVariantList LibraryController::books() const
     return m_books;
 }
 
+int LibraryController::totalBookCount() const
+{
+    return m_allBooks.size();
+}
+
 QString LibraryController::lastError() const
 {
     return m_lastError;
+}
+
+QString LibraryController::searchText() const
+{
+    return m_searchText;
+}
+
+QString LibraryController::formatFilter() const
+{
+    return m_formatFilter;
+}
+
+void LibraryController::setSearchText(const QString &searchText)
+{
+    if (m_searchText == searchText) {
+        return;
+    }
+
+    m_searchText = searchText;
+    emit searchTextChanged();
+    rebuildVisibleBooks();
+}
+
+void LibraryController::setFormatFilter(const QString &formatFilter)
+{
+    const QString normalizedFilter = formatFilter.isEmpty() ? QStringLiteral("全部") : formatFilter;
+    if (m_formatFilter == normalizedFilter) {
+        return;
+    }
+
+    m_formatFilter = normalizedFilter;
+    emit formatFilterChanged();
+    rebuildVisibleBooks();
 }
 
 bool LibraryController::refresh()
@@ -32,13 +70,13 @@ bool LibraryController::refresh()
         return false;
     }
 
-    QVariantList nextBooks;
-    for (const Book &book : m_repository->books()) {
-        nextBooks.append(toMap(book));
+    const QList<Book> nextBooks = m_repository->books();
+    const bool totalChanged = m_allBooks.size() != nextBooks.size();
+    m_allBooks = nextBooks;
+    if (totalChanged) {
+        emit totalBookCountChanged();
     }
-
-    m_books = nextBooks;
-    emit booksChanged();
+    rebuildVisibleBooks();
     return true;
 }
 
@@ -122,6 +160,38 @@ bool LibraryController::saveImportedBook(const Book &book)
 
     setLastError(QString());
     return refresh();
+}
+
+void LibraryController::rebuildVisibleBooks()
+{
+    QVariantList nextBooks;
+    for (const Book &book : std::as_const(m_allBooks)) {
+        if (acceptsBook(book)) {
+            nextBooks.append(toMap(book));
+        }
+    }
+
+    m_books = nextBooks;
+    emit booksChanged();
+}
+
+bool LibraryController::acceptsBook(const Book &book) const
+{
+    const QString trimmedSearch = m_searchText.trimmed();
+    if (!trimmedSearch.isEmpty()) {
+        const bool titleMatches = book.title.contains(trimmedSearch, Qt::CaseInsensitive);
+        const bool originalNameMatches = book.originalName.contains(trimmedSearch, Qt::CaseInsensitive);
+        if (!titleMatches && !originalNameMatches) {
+            return false;
+        }
+    }
+
+    const QString normalizedFilter = m_formatFilter.trimmed().toLower();
+    if (!normalizedFilter.isEmpty() && normalizedFilter != QStringLiteral("全部")) {
+        return book.format.compare(normalizedFilter, Qt::CaseInsensitive) == 0;
+    }
+
+    return true;
 }
 
 void LibraryController::setLastError(const QString &error)
