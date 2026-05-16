@@ -1,4 +1,4 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Sql Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Sql Pdf Test)
 
 add_executable(tst_bookrepository
     tst_bookrepository.cpp
@@ -80,6 +80,8 @@ target_include_directories(tst_pdfdocument
 target_link_libraries(tst_pdfdocument
     PRIVATE
         Qt6::Core
+        Qt6::Gui
+        Qt6::Pdf
         Qt6::Test
 )
 
@@ -89,6 +91,8 @@ add_executable(tst_pdfpagerenderer
     tst_pdfpagerenderer.cpp
     ../src/reader/PdfPageRenderer.cpp
     ../src/reader/PdfPageRenderer.h
+    ../src/reader/PdfDocument.cpp
+    ../src/reader/PdfDocument.h
 )
 
 target_include_directories(tst_pdfpagerenderer
@@ -99,10 +103,33 @@ target_include_directories(tst_pdfpagerenderer
 target_link_libraries(tst_pdfpagerenderer
     PRIVATE
         Qt6::Core
+        Qt6::Gui
+        Qt6::Pdf
         Qt6::Test
 )
 
 add_test(NAME tst_pdfpagerenderer COMMAND $<TARGET_FILE:tst_pdfpagerenderer>)
+
+add_executable(tst_epubdocument
+    tst_epubdocument.cpp
+    ../src/reader/EpubDocument.cpp
+    ../src/reader/EpubDocument.h
+)
+
+target_include_directories(tst_epubdocument
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src
+)
+
+target_link_libraries(tst_epubdocument
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::GuiPrivate
+        Qt6::Test
+)
+
+add_test(NAME tst_epubdocument COMMAND $<TARGET_FILE:tst_epubdocument>)
 
 add_executable(tst_librarycontroller
     tst_librarycontroller.cpp

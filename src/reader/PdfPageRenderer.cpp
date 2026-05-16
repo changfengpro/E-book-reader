@@ -1,31 +1,58 @@
 #include "PdfPageRenderer.h"
 
+#include "PdfDocument.h"
+
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
-#include <QProcess>
+#include <QImage>
+#include <QPdfDocument>
+#include <QPdfDocumentRenderOptions>
+#include <QSize>
+#include <QSizeF>
 #include <QStandardPaths>
 
 PdfPageRenderer::PdfPageRenderer(QString cacheRoot)
     : m_cacheRoot(cacheRoot.isEmpty()
-          ? QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath(QStringLiteral("pdf-pages"))
+          ? QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation))
+                .filePath(QStringLiteral("pdf-pages"))
           : std::move(cacheRoot))
 {
 }
 
+int PdfPageRenderer::bucketWidth(int targetWidthPx)
+{
+    // Snap the requested width to a coarse bucket so that small layout-driven
+    // resizes don't blow away the cache. 64 px buckets give us roughly the
+    // human-perceptible quantum on a tablet.
+    constexpr int bucket = 64;
+    constexpr int minWidth = 256;
+    constexpr int maxWidth = 4096;
+    const int clamped = qBound(minWidth, targetWidthPx, maxWidth);
+    return ((clamped + bucket - 1) / bucket) * bucket;
+}
+
 QString PdfPageRenderer::renderPage(const QString &filePath, int page, qreal zoom)
 {
-    m_lastError.clear();
+    // Treat zoom == 1.0 as a 1024-px target width on the long side, which
+    // matches the QML reader at 100% on a 10" tablet. This is purely a
+    // compatibility shim; new code should call the int overload directly.
+    const int target = static_cast<int>(1024.0 * qBound(0.25, zoom, 4.0));
+    return renderPage(filePath, page, target);
+}
 
-    const QString mutoolPath = defaultMutoolPath();
-    if (mutoolPath.isEmpty() || !QFileInfo::exists(mutoolPath)) {
-        m_lastError = QStringLiteral("未找到 MuPDF mutool.exe");
-        return {};
-    }
+QString PdfPageRenderer::renderPage(const QString &filePath, int page, int targetWidthPx)
+{
+    m_lastError.clear();
 
     const QFileInfo pdfInfo(filePath);
     if (!pdfInfo.exists() || !pdfInfo.isFile()) {
         m_lastError = QStringLiteral("PDF 文件不存在或无法读取");
+        return {};
+    }
+
+    if (page < 1) {
+        m_lastError = QStringLiteral("PDF 页码无效");
         return {};
     }
 
@@ -34,42 +61,50 @@ QString PdfPageRenderer::renderPage(const QString &filePath, int page, qreal zoo
         return {};
     }
 
-    const QString outputPath = outputPathFor(filePath, page, zoom);
+    const int widthBucket = bucketWidth(targetWidthPx);
+    const QString outputPath = outputPathFor(filePath, page, widthBucket);
     const QFileInfo outputInfo(outputPath);
     if (outputInfo.exists() && outputInfo.isFile() && outputInfo.size() > 0) {
         return outputPath;
     }
 
-    const int dpi = qBound(72, static_cast<int>(144 * zoom), 360);
-
-    QProcess process;
-    process.setProgram(mutoolPath);
-    process.setArguments({
-        QStringLiteral("draw"),
-        QStringLiteral("-o"),
-        outputPath,
-        QStringLiteral("-r"),
-        QString::number(dpi),
-        filePath,
-        QString::number(qMax(1, page))
-    });
-    process.start();
-    if (!process.waitForFinished(30000)) {
-        process.kill();
-        m_lastError = QStringLiteral("PDF 页面渲染超时");
+    PdfDocument document;
+    if (!document.load(filePath)) {
+        m_lastError = document.lastError();
         return {};
     }
 
-    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
-        m_lastError = QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
-        if (m_lastError.isEmpty()) {
-            m_lastError = QStringLiteral("PDF 页面渲染失败");
-        }
+    QPdfDocument *handle = document.handle();
+    if (!handle) {
+        m_lastError = QStringLiteral("PDF 文档未就绪");
         return {};
     }
 
-    if (!QFileInfo::exists(outputPath)) {
-        m_lastError = QStringLiteral("PDF 页面图片未生成");
+    if (page > handle->pageCount()) {
+        m_lastError = QStringLiteral("PDF 页码超出范围");
+        return {};
+    }
+
+    // QPdfDocument uses 0-based page indices.
+    const int pageIndex = page - 1;
+    const QSizeF pointSize = handle->pagePointSize(pageIndex);
+    if (pointSize.width() <= 0.0 || pointSize.height() <= 0.0) {
+        m_lastError = QStringLiteral("PDF 页面尺寸无效");
+        return {};
+    }
+
+    const qreal aspect = pointSize.height() / pointSize.width();
+    const int renderWidth = widthBucket;
+    const int renderHeight = qMax(1, static_cast<int>(renderWidth * aspect));
+
+    const QImage image = handle->render(pageIndex, QSize(renderWidth, renderHeight));
+    if (image.isNull()) {
+        m_lastError = QStringLiteral("PDF 页面渲染失败");
+        return {};
+    }
+
+    if (!image.save(outputPath, "PNG")) {
+        m_lastError = QStringLiteral("PDF 页面图片保存失败");
         return {};
     }
 
@@ -81,30 +116,19 @@ QString PdfPageRenderer::lastError() const
     return m_lastError;
 }
 
-QString PdfPageRenderer::defaultMutoolPath()
+QString PdfPageRenderer::cacheRoot() const
 {
-    const QString configuredPath = qEnvironmentVariable("MUTOOL_PATH");
-    if (!configuredPath.isEmpty()) {
-        return configuredPath;
-    }
-
-#ifdef Q_OS_WIN
-    const QString knownPath = QStringLiteral("F:/Program Files/mupdf-1.27.0-windows/mutool.exe");
-    if (QFileInfo::exists(knownPath)) {
-        return knownPath;
-    }
-#endif
-
-    return QStringLiteral("mutool");
+    return m_cacheRoot;
 }
 
-QString PdfPageRenderer::outputPathFor(const QString &filePath, int page, qreal zoom) const
+QString PdfPageRenderer::outputPathFor(const QString &filePath, int page, int widthBucket) const
 {
     const QByteArray key = QStringLiteral("%1|%2|%3")
         .arg(QFileInfo(filePath).absoluteFilePath())
         .arg(page)
-        .arg(zoom, 0, 'f', 2)
+        .arg(widthBucket)
         .toUtf8();
-    const QString digest = QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
+    const QString digest = QString::fromLatin1(
+        QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
     return QDir(m_cacheRoot).filePath(QStringLiteral("%1.png").arg(digest));
 }

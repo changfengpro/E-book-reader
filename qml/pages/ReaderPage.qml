@@ -9,15 +9,30 @@ Page {
 
     property string bookId: ""
     property string filePath: ""
-    property string formatOverride: ""
-    property string titleOverride: ""
+    property string bookFormat: ""    // authoritative format from the library
+    property string bookTitle: ""     // authoritative title from the library
     property string pageTurnMode: "vertical"
+
+    // TXT state
     property int currentChapterIndex: 0
     property var textChapters: []
+
+    // PDF state
     property bool pdfLoaded: false
     property int pdfPageCount: 0
     property string pdfInfoError: ""
     property string pdfRenderError: ""
+
+    // EPUB state
+    property var epubChapters: []
+    property int currentEpubChapterIndex: 0
+    property string epubChapterHtml: ""
+    property string epubError: ""
+
+    readonly property string activeFormat: page.bookFormat.length > 0
+        ? page.bookFormat.toLowerCase()
+        : controller.format
+
     readonly property string safePdfStatusText: pdfRenderError.length > 0
         ? pdfRenderError
         : pdfLoaded
@@ -32,6 +47,8 @@ Page {
     ReaderController {
         id: controller
         bookId: page.bookId
+        format: page.bookFormat
+        title: page.bookTitle
     }
 
     Component.onCompleted: refreshDocuments()
@@ -39,7 +56,7 @@ Page {
     onActiveFormatChanged: refreshDocuments()
 
     header: ReaderToolbar {
-        title: page.titleOverride.length > 0 ? page.titleOverride : controller.title
+        title: page.bookTitle.length > 0 ? page.bookTitle : controller.title
         onBackRequested: page.backRequested()
         onContentsRequested: contentsPopup.open()
         onSettingsRequested: page.settingsRequested()
@@ -47,13 +64,14 @@ Page {
 
     Rectangle {
         anchors.fill: parent
-        color: activeFormat === "pdf" ? "#eee7dc" : "#f7f1e8"
+        color: page.activeFormat === "pdf" ? "#eee7dc" : "#f7f1e8"
 
         Loader {
+            id: readerLoader
             anchors.fill: parent
-            sourceComponent: activeFormat === "txt" ? txtReaderComponent
-                           : activeFormat === "pdf" ? pdfReaderComponent
-                           : activeFormat === "epub" ? epubReaderComponent
+            sourceComponent: page.activeFormat === "txt" ? txtReaderComponent
+                           : page.activeFormat === "pdf" ? pdfReaderComponent
+                           : page.activeFormat === "epub" ? epubReaderComponent
                            : placeholderComponent
         }
     }
@@ -81,10 +99,12 @@ Page {
             }
 
             Label {
-                text: activeFormat === "epub"
-                    ? "EPUB 目录解析模块接入后会显示章节。"
-                    : activeFormat === "pdf"
-                        ? "PDF 目录解析模块接入后会显示书签。"
+                text: page.activeFormat === "pdf"
+                    ? "PDF 暂未提供书签解析。"
+                    : page.activeFormat === "epub"
+                        ? (page.epubChapters.length === 0
+                            ? (page.epubError.length > 0 ? page.epubError : "EPUB 章节加载中...")
+                            : "")
                         : page.textChapters.length === 0
                             ? "未识别到章节。"
                             : ""
@@ -95,8 +115,10 @@ Page {
             }
 
             ListView {
-                visible: activeFormat === "txt" && page.textChapters.length > 0
-                model: page.textChapters
+                id: contentsList
+                visible: (page.activeFormat === "txt" && page.textChapters.length > 0)
+                      || (page.activeFormat === "epub" && page.epubChapters.length > 0)
+                model: page.activeFormat === "txt" ? page.textChapters : page.epubChapters
                 clip: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -104,9 +126,15 @@ Page {
                 delegate: ItemDelegate {
                     width: ListView.view.width
                     text: modelData.title
-                    highlighted: modelData.index === page.currentChapterIndex
+                    highlighted: page.activeFormat === "txt"
+                        ? (modelData.index === page.currentChapterIndex)
+                        : (modelData.index === page.currentEpubChapterIndex)
                     onClicked: {
-                        page.currentChapterIndex = modelData.index
+                        if (page.activeFormat === "txt") {
+                            page.currentChapterIndex = modelData.index
+                        } else if (page.activeFormat === "epub") {
+                            page.selectEpubChapter(modelData.index)
+                        }
                         contentsPopup.close()
                     }
                 }
@@ -119,8 +147,6 @@ Page {
             }
         }
     }
-
-    readonly property string activeFormat: page.formatOverride.length > 0 ? page.formatOverride : controller.format
 
     Component {
         id: txtReaderComponent
@@ -157,6 +183,7 @@ Page {
         id: pdfReaderComponent
 
         PdfReader {
+            id: pdfView
             pageCount: page.pdfPageCount
             statusText: page.safePdfStatusText
             onPageRequested: function(requestedPage, requestedZoom) {
@@ -167,7 +194,7 @@ Page {
 
                 const render = controller.renderPdfPage(page.filePath, requestedPage, requestedZoom) || {}
                 page.pdfRenderError = render.rendered === true ? "" : String(render.error || "PDF 页面渲染失败")
-                updatePageImage(requestedPage, render.rendered === true ? String(render.imageUrl || "") : "")
+                pdfView.updatePageImage(requestedPage, render.rendered === true ? String(render.imageUrl || "") : "")
             }
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
@@ -179,7 +206,13 @@ Page {
         id: epubReaderComponent
 
         EpubReader {
-            errorText: "当前构建未启用 EPUB 解包模块"
+            chapters: page.epubChapters
+            currentIndex: page.currentEpubChapterIndex
+            chapterHtml: page.epubChapterHtml
+            errorText: page.epubError
+            onChapterSelected: function(index) {
+                page.selectEpubChapter(index)
+            }
             onLocatorChanged: function(locatorJson) {
                 controller.saveLocator(locatorJson)
             }
@@ -215,9 +248,33 @@ Page {
         pdfRenderError = pdfLoaded ? "" : pdfInfoError
     }
 
+    function refreshEpubInfo() {
+        if (activeFormat !== "epub" || filePath.length === 0) {
+            epubChapters = []
+            currentEpubChapterIndex = 0
+            epubChapterHtml = ""
+            epubError = ""
+            return
+        }
+
+        epubChapters = controller.loadEpubChapters(filePath) || []
+        if (epubChapters.length === 0) {
+            epubChapterHtml = ""
+            epubError = controller.epubLastError()
+            return
+        }
+
+        epubError = ""
+        if (currentEpubChapterIndex >= epubChapters.length) {
+            currentEpubChapterIndex = 0
+        }
+        epubChapterHtml = controller.loadEpubChapter(filePath, epubChapters[currentEpubChapterIndex].id) || ""
+    }
+
     function refreshDocuments() {
         refreshTextChapters()
         refreshPdfInfo()
+        refreshEpubInfo()
     }
 
     function previousChapter() {
@@ -230,5 +287,18 @@ Page {
         if (currentChapterIndex + 1 < textChapters.length) {
             currentChapterIndex += 1
         }
+    }
+
+    function selectEpubChapter(index) {
+        if (index < 0 || index >= epubChapters.length) {
+            return
+        }
+        currentEpubChapterIndex = index
+        epubChapterHtml = controller.loadEpubChapter(filePath, epubChapters[index].id) || ""
+        controller.saveLocator(JSON.stringify({
+            type: "epub",
+            chapterId: epubChapters[index].id,
+            chapterIndex: index
+        }))
     }
 }
