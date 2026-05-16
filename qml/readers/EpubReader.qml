@@ -5,10 +5,12 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    property string title: "EPUB"
-    property string bodyText: ""
+    property var chapters: []
+    property int currentIndex: 0
+    property string chapterHtml: ""
     property string errorText: ""
 
+    signal chapterSelected(int index)
     signal locatorChanged(string locatorJson)
 
     RowLayout {
@@ -33,18 +35,21 @@ Item {
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    model: [root.title]
+                    clip: true
+                    model: root.chapters
 
                     delegate: ItemDelegate {
                         width: ListView.view.width
-                        text: modelData
-                        onClicked: root.locatorChanged(JSON.stringify({ type: "epub", chapter: modelData }))
+                        text: modelData.title
+                        highlighted: modelData.index === root.currentIndex
+                        onClicked: root.chapterSelected(modelData.index)
                     }
                 }
             }
         }
 
         Flickable {
+            id: scroll
             clip: true
             contentWidth: width
             contentHeight: chapterText.implicitHeight + 48
@@ -56,14 +61,39 @@ Item {
                 x: 24
                 y: 24
                 width: parent.width - 48
-                text: root.errorText.length > 0 ? root.errorText
-                    : root.bodyText.length > 0 ? root.bodyText
-                    : "EPUB 章节将在这里显示"
+                text: root.errorText.length > 0
+                    ? root.errorText
+                    : root.chapterHtml.length > 0
+                        ? root.chapterHtml
+                        : (root.chapters.length === 0
+                            ? "EPUB 章节将在这里显示"
+                            : "正在加载章节...")
+                textFormat: root.errorText.length > 0 ? Text.PlainText : Text.RichText
                 wrapMode: Text.WordWrap
                 font.pixelSize: 20
                 lineHeight: 1.45
                 color: "#2d2925"
+                onLinkActivated: function(link) {
+                    Qt.openUrlExternally(link)
+                }
             }
         }
+    }
+
+    onChapterHtmlChanged: scroll.contentY = 0
+
+    onCurrentIndexChanged: {
+        if (root.chapters.length === 0) {
+            return
+        }
+        const chapter = root.chapters[root.currentIndex]
+        if (!chapter) {
+            return
+        }
+        root.locatorChanged(JSON.stringify({
+            type: "epub",
+            chapterId: chapter.id,
+            chapterIndex: root.currentIndex
+        }))
     }
 }

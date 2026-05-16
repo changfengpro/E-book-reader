@@ -1,108 +1,41 @@
 #include "PdfDocument.h"
 
-#include <QFile>
 #include <QFileInfo>
-#include <QProcess>
-#include <QRegularExpression>
+#include <QPdfDocument>
 
 namespace {
-QString defaultMutoolPath()
+QString errorToMessage(QPdfDocument::Error error)
 {
-    const QString configuredPath = qEnvironmentVariable("MUTOOL_PATH");
-    if (!configuredPath.isEmpty()) {
-        return configuredPath;
+    switch (error) {
+    case QPdfDocument::Error::None:
+        return {};
+    case QPdfDocument::Error::DataNotYetAvailable:
+        return QStringLiteral("PDF 数据尚未就绪");
+    case QPdfDocument::Error::FileNotFound:
+        return QStringLiteral("PDF 文件不存在");
+    case QPdfDocument::Error::InvalidFileFormat:
+        return QStringLiteral("文件不是有效的 PDF");
+    case QPdfDocument::Error::IncorrectPassword:
+        return QStringLiteral("PDF 受密码保护");
+    case QPdfDocument::Error::UnsupportedSecurityScheme:
+        return QStringLiteral("不支持的 PDF 加密方式");
+    case QPdfDocument::Error::Unknown:
+        break;
     }
-
-#ifdef Q_OS_WIN
-    const QString knownPath = QStringLiteral("F:/Program Files/mupdf-1.27.0-windows/mutool.exe");
-    if (QFileInfo::exists(knownPath)) {
-        return knownPath;
-    }
-#endif
-
-    return QStringLiteral("mutool");
-}
-
-int maxPagesCountFromPagesTree(const QString &text)
-{
-    static const QRegularExpression countPattern(QStringLiteral(R"(/Count\s+(\d+))"));
-
-    int maxCount = 0;
-    QRegularExpressionMatchIterator matches = countPattern.globalMatch(text);
-    while (matches.hasNext()) {
-        const QRegularExpressionMatch match = matches.next();
-        bool ok = false;
-        const int count = match.captured(1).toInt(&ok);
-        if (ok && count > maxCount) {
-            maxCount = count;
-        }
-    }
-    return maxCount;
-}
-
-int pageObjectCount(const QString &text)
-{
-    static const QRegularExpression pagePattern(QStringLiteral(R"(/Type\s*/Page(?!s)\b)"));
-
-    int count = 0;
-    QRegularExpressionMatchIterator matches = pagePattern.globalMatch(text);
-    while (matches.hasNext()) {
-        matches.next();
-        ++count;
-    }
-    return count;
-}
-
-int pageCountFromMutool(const QString &filePath, QString *error)
-{
-    const QString mutoolPath = defaultMutoolPath();
-    if (mutoolPath.isEmpty() || !QFileInfo::exists(mutoolPath)) {
-        if (error) {
-            *error = QStringLiteral("未找到 MuPDF mutool.exe");
-        }
-        return 0;
-    }
-
-    QProcess process;
-    process.setProgram(mutoolPath);
-    process.setArguments({ QStringLiteral("info"), filePath });
-    process.start();
-    if (!process.waitForFinished(30000)) {
-        process.kill();
-        if (error) {
-            *error = QStringLiteral("PDF 页数解析超时");
-        }
-        return 0;
-    }
-
-    const QString output = QString::fromLocal8Bit(process.readAllStandardOutput());
-    const QString errorOutput = QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
-    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
-        if (error) {
-            *error = errorOutput.isEmpty() ? QStringLiteral("PDF 页数解析失败") : errorOutput;
-        }
-        return 0;
-    }
-
-    static const QRegularExpression pagesPattern(QStringLiteral(R"(\bPages:\s+(\d+))"));
-    const QRegularExpressionMatch match = pagesPattern.match(output);
-    if (!match.hasMatch()) {
-        if (error) {
-            *error = QStringLiteral("无法识别 PDF 页数");
-        }
-        return 0;
-    }
-
-    bool ok = false;
-    const int pageCount = match.captured(1).toInt(&ok);
-    return ok ? pageCount : 0;
+    return QStringLiteral("无法打开 PDF 文件");
 }
 }
+
+PdfDocument::PdfDocument() = default;
+PdfDocument::~PdfDocument() = default;
+PdfDocument::PdfDocument(PdfDocument &&) noexcept = default;
+PdfDocument &PdfDocument::operator=(PdfDocument &&) noexcept = default;
 
 bool PdfDocument::load(const QString &filePath)
 {
     m_pageCount = 0;
     m_lastError.clear();
+    m_document.reset();
 
     const QFileInfo fileInfo(filePath);
     if (!fileInfo.exists() || !fileInfo.isFile()) {
@@ -110,34 +43,20 @@ bool PdfDocument::load(const QString &filePath)
         return false;
     }
 
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        m_lastError = QStringLiteral("无法打开 PDF 文件");
+    auto document = std::make_unique<QPdfDocument>();
+    const QPdfDocument::Error error = document->load(filePath);
+    if (error != QPdfDocument::Error::None) {
+        m_lastError = errorToMessage(error);
         return false;
     }
 
-    const QByteArray data = file.readAll();
-    if (!data.startsWith("%PDF-")) {
-        m_lastError = QStringLiteral("文件不是有效的 PDF");
-        return false;
-    }
-
-    const QString text = QString::fromLatin1(data);
-    const int objectPageCount = pageObjectCount(text);
-    const int treePageCount = maxPagesCountFromPagesTree(text);
-    m_pageCount = objectPageCount > 0 ? objectPageCount : treePageCount;
-
+    m_pageCount = document->pageCount();
     if (m_pageCount <= 0) {
-        m_pageCount = pageCountFromMutool(filePath, &m_lastError);
-    }
-
-    if (m_pageCount <= 0) {
-        if (m_lastError.isEmpty()) {
-            m_lastError = QStringLiteral("无法识别 PDF 页数");
-        }
+        m_lastError = QStringLiteral("无法识别 PDF 页数");
         return false;
     }
 
+    m_document = std::move(document);
     return true;
 }
 
@@ -149,4 +68,9 @@ int PdfDocument::pageCount() const
 QString PdfDocument::lastError() const
 {
     return m_lastError;
+}
+
+QPdfDocument *PdfDocument::handle() const
+{
+    return m_document.get();
 }

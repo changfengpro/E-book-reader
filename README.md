@@ -1,54 +1,46 @@
 # 安卓平板电子书阅读器
 
-基于 Qt 6 + QML/C++ 的本地电子书阅读器，目标平台是安卓平板。当前版本已经打通项目骨架、书架界面、本地导入服务、SQLite 书库、TXT 解码和真实文件阅读链路，并为 PDF/EPUB 保留可替换阅读接口。
+基于 Qt 6 + QML/C++ 的本地电子书阅读器，目标平台是安卓平板。
 
 ## 支持格式
 
-- TXT：支持 UTF-8、UTF-16 和 Windows GBK/CP936 兼容解码，已接入导入和阅读页。
-- PDF：已接入文件读取、页数识别、页码导航和阅读状态保存；桌面端可通过 MuPDF `mutool` 渲染页面图片。
-- EPUB：已提供目录/章节接口和阅读界面，当前构建尚未接入真实 EPUB 解包模块。
+- **TXT**：UTF-8 / UTF-16 / GB18030 自动识别，中文章节正则切分。
+- **PDF**：使用 `Qt6::Pdf`（QPdfDocument）解析与渲染，按目标宽度分桶缓存为 PNG，**不再依赖外部 mutool 进程**，可直接在 Android 构建中工作。
+- **EPUB**：使用 Qt 私有的 `QZipReader` 解包，按 EPUB 3 nav / EPUB 2 NCX 解析目录，章节 HTML 中的图片会被转成 base64 内嵌，便于 QML 直接渲染。
 
-## 本地构建
+## 依赖
 
-推荐使用 Qt 自带 MinGW 和 Ninja：
+- Qt 6.5+，需启用以下模块：
+  - `Qt6::Core` / `Qt6::Gui` / `Qt6::Quick` / `Qt6::Sql`
+  - `Qt6::Pdf`（PDF 渲染）
+  - `Qt6::GuiPrivate`（用于 `QZipReader` / `QZipWriter`，EPUB 解包）
+
+EPUB 解析使用了 Qt 提供的私有头 `private/qzipreader_p.h`。这是 Qt 长期维护的内部能力，但 API 可能在大版本之间发生变化；升级 Qt 时需要重新验证。
+
+## 本地构建（Windows / MinGW）
 
 ```powershell
 $env:PATH="D:\Qt\Tools\mingw1310_64\bin;D:\Qt\6.10.2\mingw_64\bin;D:\Qt\Tools\Ninja;$env:PATH"
 cmake -S . -B build-qt6 -G Ninja `
-  -DCMAKE_PREFIX_PATH=D:\Qt\6.10.2\mingw_64 `
-  -DCMAKE_CXX_COMPILER=D:\Qt\Tools\mingw1310_64\bin\g++.exe `
-  -DCMAKE_MAKE_PROGRAM=D:\Qt\Tools\Ninja\ninja.exe
+  -DCMAKE_PREFIX_PATH=D:\Qt\6.10.2\mingw_64
 cmake --build build-qt6
 ctest --test-dir build-qt6 --output-on-failure
 ```
 
-## 运行桌面预览
-
-```powershell
-$env:PATH="D:\Qt\Tools\mingw1310_64\bin;D:\Qt\6.10.2\mingw_64\bin;$env:PATH"
-.\build-qt6\TabletEbookReader.exe
-```
-
-## 导入链路
-
-- 桌面端：`FileDialog` 返回本地文件路径，`BookImporter` 复制原始文件到应用书库目录。
-- 安卓端：已为 `content://` 文档 URI 建立导入入口，尝试通过 Qt/Android 文件引擎以只读流复制到应用书库。
-- 真机注意：Android 文档 URI 的长期访问权限和不同文件管理器兼容性仍需要在平板上验证。
-
 ## 测试
 
-当前自动化测试包括：
+- `tst_bookrepository`：SQLite 元数据 / 阅读位置。
+- `tst_bookimporter`：格式识别 + 流式导入。
+- `tst_txtdocument`：TXT 编码与章节识别。
+- `tst_pdfdocument`：通过 `QPdfWriter` 即时合成 PDF，验证 `QPdfDocument` 解析路径与错误处理。
+- `tst_pdfpagerenderer`：渲染缓存命中 / miss。
+- `tst_epubdocument`：通过 `QZipWriter` 即时合成 EPUB 3，验证 nav/spine 解析与章节 HTML 输出。
+- `tst_librarycontroller`：导入 + 搜索 + 格式筛选。
 
-- `tst_bookrepository`：SQLite 初始化、书籍元数据和阅读位置保存。
-- `tst_bookimporter`：TXT/PDF/EPUB 格式识别，以及从已打开文件流导入。
-- `tst_txtdocument`：TXT 编码读取和章节识别。
-- `tst_pdfdocument`：PDF 文件识别和页数解析。
-- `tst_pdfpagerenderer`：通过 MuPDF `mutool draw` 渲染 PDF 页面图片。
-- `tst_librarycontroller`：书架控制器导入本地文件并刷新书籍列表。
+测试**全部不再依赖外部可执行文件**，CI 上稳定可跑。
 
-## 后续实现重点
+## 已知限制
 
-- 在安卓真机上验证并加固文档 URI 持久权限处理。
-- 将 MuPDF 渲染后端打包进 Android 构建。
-- 接入 EPUB zip 解包和 OPF/Nav 解析。
-- 将阅读设置保存到 SQLite。
+- EPUB 章节渲染走 `Text { textFormat: RichText }`，对复杂 CSS / 嵌入字体支持有限；后续可切到 `WebView`。
+- PDF 缩放当前按 64 px 宽度桶量化，更平滑的连续缩放需要在 QML 层做仿射变换。
+- Android 真机的 `content://` URI 长期权限矩阵还需要在多个文件管理器上回归。

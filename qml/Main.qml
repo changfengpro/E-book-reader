@@ -19,8 +19,8 @@ ApplicationWindow {
                 stack.push(readerPage, {
                     bookId: book.bookId,
                     filePath: book.filePath,
-                    formatOverride: book.format,
-                    titleOverride: book.title
+                    bookFormat: book.format,
+                    bookTitle: book.title
                 })
             }
         }

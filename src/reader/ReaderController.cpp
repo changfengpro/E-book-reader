@@ -4,7 +4,6 @@
 #include "reader/PdfPageRenderer.h"
 
 #include <QUrl>
-#include <QVariantMap>
 
 ReaderController::ReaderController(QObject *parent)
     : QObject(parent)
@@ -21,25 +20,40 @@ void ReaderController::setBookId(const QString &bookId)
     if (m_bookId == bookId) {
         return;
     }
-
     m_bookId = bookId;
     emit bookChanged();
 }
 
 QString ReaderController::format() const
 {
-    if (m_bookId.contains(QStringLiteral("pdf"), Qt::CaseInsensitive)) {
-        return QStringLiteral("pdf");
+    return m_format;
+}
+
+void ReaderController::setFormat(const QString &format)
+{
+    const QString normalized = format.toLower();
+    if (m_format == normalized) {
+        return;
     }
-    if (m_bookId.contains(QStringLiteral("epub"), Qt::CaseInsensitive)) {
-        return QStringLiteral("epub");
-    }
-    return QStringLiteral("txt");
+    m_format = normalized;
+    emit bookChanged();
 }
 
 QString ReaderController::title() const
 {
+    if (!m_title.isEmpty()) {
+        return m_title;
+    }
     return m_bookId.isEmpty() ? QStringLiteral("阅读") : m_bookId;
+}
+
+void ReaderController::setTitle(const QString &title)
+{
+    if (m_title == title) {
+        return;
+    }
+    m_title = title;
+    emit bookChanged();
 }
 
 void ReaderController::saveLocator(const QString &locatorJson)
@@ -123,6 +137,58 @@ QVariantMap ReaderController::renderPdfPage(const QString &filePath, int page, d
     };
 }
 
+QVariantMap ReaderController::renderPdfPageAtWidth(const QString &filePath, int page, int targetWidthPx)
+{
+    PdfPageRenderer renderer;
+    const QString imagePath = renderer.renderPage(filePath, page, targetWidthPx);
+    if (imagePath.isEmpty()) {
+        return {
+            { QStringLiteral("rendered"), false },
+            { QStringLiteral("imageUrl"), QString() },
+            { QStringLiteral("error"), renderer.lastError() }
+        };
+    }
+
+    return {
+        { QStringLiteral("rendered"), true },
+        { QStringLiteral("imageUrl"), QUrl::fromLocalFile(imagePath).toString() },
+        { QStringLiteral("error"), QString() }
+    };
+}
+
+QVariantList ReaderController::loadEpubChapters(const QString &filePath)
+{
+    QVariantList list;
+    if (!ensureEpubLoaded(filePath)) {
+        return list;
+    }
+    const QVector<EpubChapter> chapters = m_epubDocument.chapters();
+    list.reserve(chapters.size());
+    for (int i = 0; i < chapters.size(); ++i) {
+        const EpubChapter &chapter = chapters.at(i);
+        list.append(QVariantMap {
+            { QStringLiteral("index"), i },
+            { QStringLiteral("id"), chapter.id },
+            { QStringLiteral("title"), chapter.title },
+            { QStringLiteral("href"), chapter.href },
+        });
+    }
+    return list;
+}
+
+QString ReaderController::loadEpubChapter(const QString &filePath, const QString &chapterId)
+{
+    if (!ensureEpubLoaded(filePath)) {
+        return {};
+    }
+    return m_epubDocument.chapterHtml(chapterId);
+}
+
+QString ReaderController::epubLastError() const
+{
+    return m_epubDocument.lastError();
+}
+
 bool ReaderController::ensureTextDocumentLoaded(const QString &filePath)
 {
     if (filePath.isEmpty()) {
@@ -140,5 +206,22 @@ bool ReaderController::ensureTextDocumentLoaded(const QString &filePath)
     }
 
     m_loadedTextPath = filePath;
+    return true;
+}
+
+bool ReaderController::ensureEpubLoaded(const QString &filePath)
+{
+    if (filePath.isEmpty()) {
+        m_loadedEpubPath.clear();
+        return false;
+    }
+    if (m_loadedEpubPath == filePath) {
+        return true;
+    }
+    if (!m_epubDocument.load(filePath)) {
+        m_loadedEpubPath.clear();
+        return false;
+    }
+    m_loadedEpubPath = filePath;
     return true;
 }
